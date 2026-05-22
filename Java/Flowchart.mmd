@@ -1,0 +1,65 @@
+---
+title: Uno turn Flowchart
+---
+%% TODO - Make flowchart more compact and easier to read, and add more rules to it (skip n' flip, no bluffing, play multiple identical cards, etc.)
+flowchart TD
+    rA("Stacking")
+%%    rB("Skip n' flip")
+    rC("7-0")
+    rD("Force play")
+    rE("Draw and play")
+    rF("Draw-to-match")
+%%    rG("No bluffing")
+%%    rH("Play multiple identical cards")
+
+    A(("Start of turn"))
+    B("Does the player have \n playable cards to play ?")
+    C("Do they want to \n draw a card ?")
+    D("Draw a card")
+    E("Choose a card to play")
+    F("Is the card playable?")
+    G("Do they want \n to play it? ")
+    H("Is the card a \n wild card ?")
+    I("Choose \n a color")
+    O("Is the card a 7 ?")
+    P("Choose a player to \n swap hands with")
+    J("Apply card effect")
+    K("Play the card")
+    L("Is current card on discard \n pile a +2 or +4 ?")
+    M("Does the player have \n a playable card to play ?")
+    N("Do they want \n to play it? ")
+    Z((( End of turn )))
+
+    A --> L
+    rA -- True --> M
+    L -- Yes --> rA
+    L -- No --> B
+    M -- Yes --> B
+    M -- No --> rE
+    rE -- True --> B
+    rE -- False --> Z
+    rA -- False --> B
+    B -- Yes --> C
+    B -- No --> D
+    C -- Yes --> D
+    C -- No --> E
+    D --> F
+    E --> H
+    F -- Yes --> rD
+    rD -- True --> H
+    rD -- False --> G
+    F -- No --> rF
+    rF -- True --> D
+    rF -- False --> Z
+    G -- Yes --> H
+    G -- No --> Z
+    H -- Yes --> I
+    H -- No --> rC
+    rC -- True --> O
+    O -- Yes --> P
+    O -- No --> J
+    P --> J
+    rC -- False --> J
+    I --> J
+    J --> K
+    K --> Z
