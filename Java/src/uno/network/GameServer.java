@@ -2,7 +2,6 @@ package uno.network;
 
 import uno.ai.network.ConnectionAI;
 import uno.game.engine.Simulation;
-import uno.game.event.Spectator;
 import uno.game.players.*;
 
 import java.io.IOException;
@@ -13,23 +12,27 @@ import java.util.function.Consumer;
 
 public class GameServer {
     public enum SlotType { HUMAN, AI, RANDOM }
-    public enum SlotRole { PLAYER, SPECTATOR }
-
     public static final class LobbySlot {
         public final String name;
         public final SlotType type;
-        public SlotRole role;
-        public final ClientHandler handler; 
+        public final ClientHandler handler;
+        public final ConnectionAI aiConnection;
+        public final int aiPort;
 
-        LobbySlot(String name, SlotType type, SlotRole role, ClientHandler handler) {
+        LobbySlot(String name, SlotType type, ClientHandler handler) {
+            this(name, type, handler, null, -1);
+        }
+
+        LobbySlot(String name, SlotType type, ClientHandler handler, ConnectionAI aiConnection, int aiPort) {
             this.name = name;
             this.type = type;
-            this.role = role;
             this.handler = handler;
+            this.aiConnection = aiConnection;
+            this.aiPort = aiPort;
         }
 
         @Override public String toString() {
-            return name + " [" + type + " / " + role + "]";
+            return name + " [" + type + "]";
         }
     }
 
@@ -51,7 +54,6 @@ public class GameServer {
     private Consumer<List<LobbySlot>> onLobbyChanged = ignored -> {};
     private Runnable onMatchEnded = () -> {};
     private Consumer<String> onPlayerDisconnected = ignored -> {};
-    private volatile Spectator hostSpectator;
 
     public GameServer(String hostName) {
         this.hostName = hostName;
@@ -59,7 +61,7 @@ public class GameServer {
 
     public void start(int port) throws IOException {
         if (isRunning()) {
-            throw new IOException("Server is already running on port " + this.port + ".");
+            throw new IOException("Servidor ja esta em execucao na porta " + this.port + ".");
         }
 
         serverSocket = new ServerSocket(port);
@@ -75,13 +77,22 @@ public class GameServer {
     }
 
     public void stop() {
-        stopCurrentMatch("Match stopped by host.");
+        stopCurrentMatch("Partida encerrada pelo host.");
         gameStarted = false;
         if (acceptPool  != null) acceptPool.shutdownNow();
         for (ClientHandler ch : clients) ch.closeOnDisconnect();
         try { if (serverSocket != null) serverSocket.close(); } catch (IOException ignored) {}
 
-        
+        for (LobbySlot slot : slots) {
+            if (slot.type == SlotType.AI && slot.aiConnection != null) {
+                try {
+                    slot.aiConnection.close();
+                } catch (Exception ignored) {
+                    // Best-effort shutdown.
+                }
+            }
+        }
+
         synchronized (this) {
             aiCount = 0;
             randomCount = 0;
@@ -113,7 +124,7 @@ public class GameServer {
         }
 
         String safeReason = (reason == null || reason.trim().isEmpty())
-                ? "Match stopped by host." : reason.trim();
+                ? "Partida encerrada pelo host." : reason.trim();
 
         broadcastHostNotice(NetworkProtocol.N_MATCH_STOPPED);
 
@@ -141,8 +152,15 @@ public class GameServer {
     }
 
     public void addAiBot() {
+        addAiBot(null, -1);
+    }
+
+    public void addAiBot(ConnectionAI aiConnection, int aiPort) {
         aiCount++;
-        rebuildSlots();
+        String name = generateBotName("AI ");
+        slots.add(new LobbySlot(name, SlotType.AI, null, aiConnection, aiPort));
+        broadcastLobbyUpdate();
+        fireOnLobbyChanged();
     }
 
     public void addRandomBot() {
@@ -152,17 +170,6 @@ public class GameServer {
 
     public void setMaxPlayers(int max) {
         maxPlayers = Math.max(1, max);
-    }
-
-    public void setPlayerRole(String name, SlotRole role) {
-        for (LobbySlot s : slots) {
-            if (s.name.equals(name) && s.type == SlotType.HUMAN) {
-                s.role = role;
-                broadcastLobbyUpdate();
-                fireOnLobbyChanged();
-                return;
-            }
-        }
     }
 
     public void setOnLobbyChanged(Consumer<List<LobbySlot>> callback) {
@@ -179,24 +186,12 @@ public class GameServer {
         this.onPlayerDisconnected = callback != null ? callback : ignored -> {};
     }
 
-    
-
-
-
-    public void setHostSpectator(Spectator spectator) {
-        this.hostSpectator = spectator;
-    }
-
     public List<LobbySlot> getSlots()  { return Collections.unmodifiableList(slots); }
     public int  getPort()              { return port; }
     public int  getHumanCount()        { return clients.size(); }
     public int  getAiCount()           { return aiCount; }
     public int  getRandomCount()       { return randomCount; }
     public int  getTotalPlayers()      { return clients.size() + aiCount + randomCount; }
-
-    
-
-
 
     public boolean kickHuman(String name) {
         if (name == null) return false;
@@ -208,11 +203,6 @@ public class GameServer {
         }
         return false;
     }
-
-    
-
-
-
 
     public boolean removeSlotByName(String name) {
         if (name == null) return false;
@@ -227,6 +217,13 @@ public class GameServer {
             if (s.type == SlotType.AI) {
                 if (aiCount > 0) aiCount--;
                 slots.remove(s);
+                if (s.aiConnection != null) {
+                    try {
+                        s.aiConnection.close();
+                    } catch (Exception ignored) {
+                        // Best-effort shutdown.
+                    }
+                }
                 broadcastLobbyUpdate();
                 fireOnLobbyChanged();
                 return true;
@@ -237,6 +234,15 @@ public class GameServer {
                 slots.remove(s);
                 broadcastLobbyUpdate();
                 fireOnLobbyChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasMissingAiBackend() {
+        for (LobbySlot slot : slots) {
+            if (slot.type == SlotType.AI && slot.aiConnection == null) {
                 return true;
             }
         }
@@ -282,15 +288,13 @@ public class GameServer {
         return addrs;
     }
 
-    public boolean startGame(ConnectionAI connectionAI, boolean[] rules,
+    public boolean startGame(boolean[] rules,
                              String gameId, int seed) {
         if (gameStarted) return false;
 
-        
         List<Player> playerList = new ArrayList<>();
 
         for (LobbySlot slot : slots) {
-            if (slot.role != SlotRole.PLAYER) continue;
             switch (slot.type) {
                 case HUMAN:
                     if (slot.handler != null) {
@@ -299,7 +303,10 @@ public class GameServer {
                     }
                     break;
                 case AI:
-                    playerList.add(new PlayerAI(slot.name, null, connectionAI));
+                    if (slot.aiConnection == null) {
+                        return false;
+                    }
+                    playerList.add(new PlayerAI(slot.name, null, slot.aiConnection));
                     break;
                 case RANDOM:
                     playerList.add(new PlayerRandom(slot.name, null));
@@ -312,22 +319,8 @@ public class GameServer {
             return false;
         }
 
-        
-        Simulation sim = new Simulation(players, connectionAI, rules, gameId, seed);
+        Simulation sim = new Simulation(players, null, rules, gameId, seed);
         for (Player p : players) p.setSimulation(sim);
-
-        for (LobbySlot slot : slots) {
-            if (slot.type == SlotType.HUMAN
-                    && slot.role == SlotRole.SPECTATOR
-                    && slot.handler != null) {
-                sim.addSpectator(new NetworkSpectator(slot.name, slot.handler.connection));
-            }
-        }
-
-        Spectator hs = hostSpectator;
-        if (hs != null) {
-            sim.addSpectator(hs);
-        }
 
         for (ClientHandler ch : clients) {
             ch.connection.sendGameStart();
@@ -336,7 +329,7 @@ public class GameServer {
 
         gameStarted = true;
         synchronized (this) { notifyAll(); }
-        
+
         gameThread = new Thread(() -> {
             try {
                 sim.startGame();
@@ -349,7 +342,7 @@ public class GameServer {
                 } else if (e.getMessage() != null && e.getMessage().contains("disconnected")) {
                     onPlayerDisconnected.accept(e.getMessage());
                 } else {
-                    System.err.println("[GameServer] game loop error: " + e.getMessage());
+                    System.err.println("[GameServer] erro no loop do jogo: " + e.getMessage());
                 }
             } finally {
                 synchronized (GameServer.this) {
@@ -392,7 +385,7 @@ public class GameServer {
                 t.start();
             } catch (IOException e) {
                 if (!serverSocket.isClosed()) {
-                    System.err.println("[GameServer] accept error: " + e.getMessage());
+                    System.err.println("[GameServer] erro ao aceitar conexao: " + e.getMessage());
                 }
                 break;
             }
@@ -405,34 +398,39 @@ public class GameServer {
             if (s.type == SlotType.HUMAN) newSlots.add(s);
         }
 
-        
         Set<String> reserved = new HashSet<>();
         for (LobbySlot s : newSlots) reserved.add(s.name);
         for (LobbySlot s : slots) reserved.add(s.name);
 
-        
         int keepAi = 0, keepRandom = 0;
         for (LobbySlot s : slots) {
             if (s.type == SlotType.AI && keepAi < aiCount) { newSlots.add(s); keepAi++; }
             if (s.type == SlotType.RANDOM && keepRandom < randomCount) { newSlots.add(s); keepRandom++; }
         }
 
-        
         for (int i = keepAi; i < aiCount; i++) {
             String name = BotNameLibrary.generate(botNameRng, reserved, "AI ");
             reserved.add(name);
-            newSlots.add(new LobbySlot(name, SlotType.AI, SlotRole.PLAYER, null));
+            newSlots.add(new LobbySlot(name, SlotType.AI, null));
         }
         for (int i = keepRandom; i < randomCount; i++) {
             String name = BotNameLibrary.generate(botNameRng, reserved, "R ");
             reserved.add(name);
-            newSlots.add(new LobbySlot(name, SlotType.RANDOM, SlotRole.PLAYER, null));
+            newSlots.add(new LobbySlot(name, SlotType.RANDOM, null));
         }
 
         slots.clear();
         slots.addAll(newSlots);
         broadcastLobbyUpdate();
         fireOnLobbyChanged();
+    }
+
+    private String generateBotName(String prefix) {
+        Set<String> reserved = new HashSet<>();
+        for (LobbySlot s : slots) {
+            reserved.add(s.name);
+        }
+        return BotNameLibrary.generate(botNameRng, reserved, prefix);
     }
 
     private void broadcastLobbyUpdate() {
@@ -447,8 +445,7 @@ public class GameServer {
         for (int i = 0; i < slots.size(); i++) {
             if (i > 0) sb.append(',');
             LobbySlot s = slots.get(i);
-            sb.append(s.name).append(':').append(s.type)
-                    .append(':').append(s.role);
+            sb.append(s.name).append(':').append(s.type);
         }
         return sb.toString();
     }
@@ -494,7 +491,7 @@ public class GameServer {
 
                 synchronized (GameServer.this) {
                     if (slots.size() >= maxPlayers) {
-                        connection.sendNotification("Lobby is full.");
+                        connection.sendNotification("Lobby lotado.");
                         closeOnDisconnect();
                         clients.remove(this);
                         return;
@@ -502,14 +499,14 @@ public class GameServer {
 
                     for (LobbySlot existing : slots) {
                         if (existing.name.equalsIgnoreCase(name)) {
-                            connection.sendNotification("Name already in use. Choose another name.");
+                            connection.sendNotification("Nome ja esta em uso. Escolha outro nome.");
                             closeOnDisconnect();
                             clients.remove(this);
                             return;
                         }
                     }
 
-                    slot = new LobbySlot(name, SlotType.HUMAN, SlotRole.PLAYER, this);
+                    slot = new LobbySlot(name, SlotType.HUMAN, this);
                     slots.add(slot);
                 }
 
@@ -546,7 +543,7 @@ public class GameServer {
 
             } catch (IOException e) {
                 
-                System.err.println("[GameServer] client error ("
+                System.err.println("[GameServer] erro do cliente ("
                         + (slot != null ? slot.name : "unknown") + "): " + e.getMessage());
                 removeSlot();
             } finally {

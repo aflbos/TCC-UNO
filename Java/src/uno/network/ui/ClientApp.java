@@ -30,10 +30,10 @@ public class ClientApp {
     }
 
     private static void printWelcome() {
-        System.out.println("\n" + BOLD + CYAN + "╔════════════════════════════════════╗" + RESET);
-        System.out.println(BOLD + CYAN +        "║      UNO Network Card Game         ║" + RESET);
-        System.out.println(BOLD + CYAN +        "║        Player Client 1.0           ║" + RESET);
-        System.out.println(BOLD + CYAN +        "╚════════════════════════════════════╝" + RESET + "\n");
+        System.out.println("\n" + BOLD + CYAN + "╔══════════════════════════════════╗" + RESET);
+        System.out.println(BOLD + CYAN +        "║   UNO - Jogo de Cartas em Rede   ║" + RESET);
+        System.out.println(BOLD + CYAN +        "║      Cliente do Jogador 1.0      ║" + RESET);
+        System.out.println(BOLD + CYAN +        "╚══════════════════════════════════╝" + RESET + "\n");
     }
 
     private static void runClient(Scanner scanner) {
@@ -43,7 +43,7 @@ public class ClientApp {
 
         printConnectHelp();
         while (true) {
-            String line = prompt(scanner, BOLD + "player> " + RESET);
+            String line = prompt(scanner, BOLD + "jogador> " + RESET);
             if (line.isEmpty()) continue;
             String[] parts = line.split("\\s+");
             String cmd = parts[0].toLowerCase();
@@ -54,48 +54,43 @@ public class ClientApp {
                     printConnectHelp();
                     continue;
 
-                case "color":
-                    System.out.println(CYAN + "Color output is " + (ConsoleStyle.isColorEnabled() ? "enabled" : "disabled")
-                            + ". Use -Duno.ui.color=on|off|auto to configure." + RESET);
-                    continue;
-
                 case "clear":
                     for (int i = 0; i < 30; i++) System.out.println();
                     continue;
 
                 case "show":
-                    System.out.println(CYAN + "\nCurrent settings:" + RESET);
-                    System.out.println("  name = " + (name.isEmpty() ? RED + "(not set)" + RESET : GREEN + name + RESET));
+                    System.out.println(CYAN + "\nConfiguracoes atuais:" + RESET);
+                    System.out.println("  nome = " + (name.isEmpty() ? RED + "(nao definido)" + RESET : GREEN + name + RESET));
                     System.out.println("  host = " + GREEN + host + RESET);
-                    System.out.println("  port = " + GREEN + port + RESET + "\n");
+                    System.out.println("  porta = " + GREEN + port + RESET + "\n");
                     continue;
 
                 case "setname":
                     if (parts.length < 2) {
-                        System.out.println(YELLOW + "Usage: setname <player-name>" + RESET);
+                        System.out.println(YELLOW + "Uso: setname <nome-do-jogador>" + RESET);
                         continue;
                     }
 
                     name = line.substring(line.indexOf(' ') + 1).trim();
 
                     if (name.isEmpty()) {
-                        System.out.println(RED + "Name cannot be empty." + RESET);
+                        System.out.println(RED + "O nome nao pode ser vazio." + RESET);
                     } else {
-                        System.out.println(GREEN + "✓ Name set to: " + name + RESET);
+                        System.out.println(GREEN + "✓ Nome definido como: " + name + RESET);
                     }
                     continue;
 
                 case "prompt": {
-                    String shownName = name.isEmpty() ? "not set" : name;
-                    String promptedName = prompt(scanner, "Your name [" + shownName + "]: ");
+                    String shownName = name.isEmpty() ? "nao definido" : name;
+                    String promptedName = prompt(scanner, "Seu nome [" + shownName + "]: ");
 
                     if (!promptedName.isEmpty()) {
                         name = promptedName;
                     }
 
-                    host = prompt(scanner, "Server IP [" + host + "]: ");
+                    host = prompt(scanner, "IP do servidor [" + host + "]: ");
                     if (host.isEmpty()) host = "127.0.0.1";
-                    port = promptForPort(scanner, "Port", port);
+                    port = promptForPort(scanner, "Porta", port);
                     continue;
                 }
 
@@ -106,7 +101,7 @@ public class ClientApp {
                         String[] hp = connectTarget.split(":", 2);
 
                         if (hp.length != 2 || hp[0].trim().isEmpty()) {
-                            System.out.println(YELLOW + "Usage: connect <ip>:<port>" + RESET);
+                            System.out.println(YELLOW + "Uso: connect <ip>:<porta>" + RESET);
                             continue;
                         }
 
@@ -122,10 +117,10 @@ public class ClientApp {
                     }
 
                     if (name.trim().isEmpty()) {
-                        String promptedName = prompt(scanner, "Set your player name first: ");
+                        String promptedName = prompt(scanner, "Defina seu nome primeiro: ");
 
                         if (promptedName.trim().isEmpty()) {
-                            System.out.println(RED + "Name required. Use `setname <name>`." + RESET);
+                            System.out.println(RED + "Nome obrigatorio. Use `setname <nome>`." + RESET);
                             continue;
                         }
 
@@ -133,7 +128,7 @@ public class ClientApp {
                     }
 
                     if (host.trim().isEmpty()) {
-                        System.out.println(RED + "Host cannot be empty. Use `sethost` first." + RESET);
+                        System.out.println(RED + "Host nao pode ser vazio. Use `sethost` primeiro." + RESET);
                         continue;
                     }
 
@@ -143,58 +138,55 @@ public class ClientApp {
                     client.setListener(sessionListener);
 
                     try {
-                        System.out.println(CYAN + "Connecting to " + host + ":" + port + "..." + RESET);
+                        System.out.println(CYAN + "Conectando em " + host + ":" + port + "..." + RESET);
                         client.connect(host, port);
                         client.startReadLoop();
-                        System.out.println(GREEN + "✓ Connected! Waiting in lobby..." + RESET);
+                        System.out.println(GREEN + "✓ Conectado! Aguardando no lobby..." + RESET);
                     } catch (IOException e) {
-                        System.err.println(RED + "✗ Connection failed: " + e.getMessage() + RESET);
+                        System.err.println(RED + "✗ Falha na conexao: " + e.getMessage() + RESET);
                         continue;
                     }
 
                     runConnectedLobbyLoop(scanner, sessionListener);
 
-                    System.out.println(CYAN + "Back at connection menu." + RESET);
+                    System.out.println(CYAN + "De volta ao menu de conexao." + RESET);
 
                     continue;
                 case "quit":
                 case "q":
                 case "exit":
                 case "menu":
-                    System.out.println(CYAN + "Goodbye!" + RESET + "\n");
+                    System.out.println(CYAN + "Ate mais!" + RESET + "\n");
                     return;
             }
 
-            System.out.println(RED + "Unknown command. Type `help`." + RESET);
+            System.out.println(RED + "Comando desconhecido. Digite `help`." + RESET);
         }
     }
 
     private static void printConnectHelp() {
-        System.out.println(BOLD + CYAN + "\n═══ Connection Menu ═══" + RESET);
-        System.out.println(GREEN + "  help | h" + RESET + "              Show commands");
-        System.out.println(GREEN + "  show" + RESET + "                  Show current name/host/port");
-        System.out.println(GREEN + "  setname <name>" + RESET + "        Set player name");
-        System.out.println(GREEN + "  prompt" + RESET + "                Interactive prompts for all fields");
-        System.out.println(GREEN + "  connect | c" + RESET + "           Connect using current settings");
-        System.out.println(GREEN + "  connect <ip>:<port>" + RESET + "   Set target and connect immediately");
-        System.out.println(GREEN + "  color" + RESET + "                 Show color output status");
-        System.out.println(GREEN + "  clear" + RESET + "                 Clear screen");
-        System.out.println(GREEN + "  quit | q" + RESET + "              Exit application");
+        System.out.println(BOLD + CYAN + "\n═══ Menu de Conexao ═══" + RESET);
+        System.out.println(GREEN + "  help | h" + RESET + "              Mostrar comandos");
+        System.out.println(GREEN + "  show" + RESET + "                  Mostrar nome/host/porta atuais");
+        System.out.println(GREEN + "  setname <name>" + RESET + "        Definir nome do jogador");
+        System.out.println(GREEN + "  prompt" + RESET + "                Perguntas interativas para todos os campos");
+        System.out.println(GREEN + "  connect | c" + RESET + "           Conectar usando as configuracoes atuais");
+        System.out.println(GREEN + "  connect <ip>:<porta>" + RESET + "   Definir destino e conectar imediatamente");
+        System.out.println(GREEN + "  clear" + RESET + "                 Limpar tela");
+        System.out.println(GREEN + "  quit | q" + RESET + "              Sair da aplicacao");
         System.out.println();
     }
 
     private static void runConnectedLobbyLoop(Scanner scanner, CliClientListener listener) {
-        System.out.println(CYAN + "Connected lobby mode: type 'help' for lobby commands." + RESET);
+        System.out.println(CYAN + "Modo lobby conectado: digite 'help' para comandos do lobby." + RESET);
 
         while (listener.isSessionActive()) {
             if (listener.isAwaitingDecision()) {
-                sleepQuietly(100);
                 continue;
             }
 
             String line = tryReadConsoleLine(scanner, BOLD + "lobby> " + RESET, listener);
             if (line == null) {
-                sleepQuietly(100);
                 continue;
             }
             if (line.isEmpty()) {
@@ -214,10 +206,10 @@ public class ClientApp {
                 case "disconnect":
                 case "menu":
                 case "leave":
-                    listener.requestDisconnect("Disconnected and returned to menu.");
+                    listener.requestDisconnect("Desconectado e retornando ao menu.");
                     break;
                 default:
-                    System.out.println(YELLOW + "Unknown lobby command. Type 'help'." + RESET);
+                    System.out.println(YELLOW + "Comando de lobby desconhecido. Digite 'help'." + RESET);
                     break;
             }
         }
@@ -240,21 +232,14 @@ public class ClientApp {
         }
     }
 
-    private static void sleepQuietly(int millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
 
     private static void printLobbyHelp() {
-        System.out.println(BOLD + CYAN + "\n=== Lobby Commands ===" + RESET);
-        System.out.println(GREEN + "  help" + RESET + "          Show this command list");
-        System.out.println(GREEN + "  players" + RESET + "       Show latest players summary");
-        System.out.println(GREEN + "  lobby" + RESET + "         Alias for players");
-        System.out.println(GREEN + "  status" + RESET + "        Alias for players");
-        System.out.println(GREEN + "  disconnect" + RESET + "    Leave server and return to connection menu");
+        System.out.println(BOLD + CYAN + "\n=== Comandos do Lobby ===" + RESET);
+        System.out.println(GREEN + "  help" + RESET + "          Mostrar esta lista de comandos");
+        System.out.println(GREEN + "  players" + RESET + "       Mostrar resumo mais recente dos jogadores");
+        System.out.println(GREEN + "  lobby" + RESET + "         Alias para players");
+        System.out.println(GREEN + "  status" + RESET + "        Alias para players");
+        System.out.println(GREEN + "  disconnect" + RESET + "    Sair do servidor e voltar ao menu de conexao");
         System.out.println();
     }
 
@@ -296,7 +281,7 @@ public class ClientApp {
     }
 
     private static void printPortError(String raw) {
-        System.out.println(RED + "Invalid port: '" + raw + "'. Enter a number in range " + MIN_PORT + "-" + MAX_PORT + "." + RESET);
+        System.out.println(RED + "Porta invalida: '" + raw + "'. Digite um numero no intervalo " + MIN_PORT + "-" + MAX_PORT + "." + RESET);
     }
 
     private static final class CliClientListener implements GameClientListener {
@@ -313,13 +298,13 @@ public class ClientApp {
 
         @Override
         public void onNotify(String message) {
-            if (!message.isEmpty()) System.out.println(BLUE + "[notify] " + message + RESET);
+            if (!message.isEmpty()) System.out.println(BLUE + "[aviso] " + message + RESET);
         }
 
         @Override
         public void onLobbyUpdate(String summary) {
             if (summary == null || summary.isEmpty()) {
-                System.out.println(CYAN + "[lobby] (empty)" + RESET);
+                System.out.println(CYAN + "[lobby] (vazio)" + RESET);
                 return;
             }
 
@@ -327,8 +312,8 @@ public class ClientApp {
 
             for (String entry : summary.split(",")) {
                 String[] parts = entry.split(":");
-                if (parts.length >= 3) {
-                    System.out.println("  - " + GREEN + parts[0] + RESET + " [" + parts[1] + " / " + parts[2] + "]");
+                if (parts.length >= 2) {
+                    System.out.println("  - " + GREEN + parts[0] + RESET + " [" + parts[1] + "]");
                 }
             }
         }
@@ -337,21 +322,21 @@ public class ClientApp {
         public void onPlayers(String summary) {
             if (summary != null && !summary.isEmpty()) {
                 lastPlayersSummary = summary;
-                System.out.println(CYAN + "[players] " + summary + RESET);
+                System.out.println(CYAN + "[jogadores] " + summary + RESET);
             }
         }
 
         @Override
         public void onGameStart() {
-            System.out.println(GREEN + BOLD + "🎮 Game started!" + RESET);
+            System.out.println(GREEN + BOLD + "🎮 Partida iniciada!" + RESET);
         }
 
         @Override
         public void onState(String handDesc, String topCard, int[] validInputs, String decisionId, String prompt, int[] playableCardIds) {
             awaitingDecision = true;
             System.out.println();
-            System.out.println(BOLD + YELLOW + "┌─ Game State ─┐" + RESET);
-            System.out.println(MAGENTA + "Top card: " + RESET + BOLD + topCard + RESET);
+            System.out.println(BOLD + YELLOW + "┌─ Estado do Jogo ─┐" + RESET);
+            System.out.println(MAGENTA + "Carta do topo: " + RESET + BOLD + topCard + RESET);
             printHand(handDesc);
             System.out.println(CYAN + prompt + RESET);
             printDecisionLabels(handDesc, validInputs, playableCardIds, decisionId, prompt);
@@ -360,7 +345,7 @@ public class ClientApp {
                 while (true) {
                     String raw;
                     synchronized (CONSOLE_LOCK) {
-                        raw = prompt(scanner, BOLD + "player> " + RESET);
+                        raw = prompt(scanner, BOLD + "jogador> " + RESET);
                     }
                     if (raw.isEmpty()) continue;
 
@@ -373,7 +358,7 @@ public class ClientApp {
                             continue;
 
                         case "state":
-                            System.out.println(MAGENTA + "Top card: " + RESET + BOLD + topCard + RESET);
+                            System.out.println(MAGENTA + "Carta do topo: " + RESET + BOLD + topCard + RESET);
                             System.out.println(CYAN + prompt + RESET);
                             printDecisionLabels(handDesc, validInputs, playableCardIds, decisionId, prompt);
                             continue;
@@ -392,7 +377,7 @@ public class ClientApp {
 
                         case "disconnect":
                         case "menu":
-                            requestDisconnect("Disconnected and returned to menu.");
+                            requestDisconnect("Desconectado e retornando ao menu.");
                             return;
                     }
 
@@ -400,7 +385,7 @@ public class ClientApp {
 
                     if ("choose".equals(cmd)) {
                         if (parts.length < 2) {
-                            System.out.println(YELLOW + "Usage: choose <action-id>" + RESET);
+                            System.out.println(YELLOW + "Uso: choose <id-da-acao>" + RESET);
                             continue;
                         }
 
@@ -414,7 +399,7 @@ public class ClientApp {
                         return;
                     }
 
-                    System.out.println(RED + "Invalid action. Use `actions` to see valid choices." + RESET);
+                    System.out.println(RED + "Acao invalida. Use `actions` para ver as opcoes validas." + RESET);
                 }
             } finally {
                 awaitingDecision = false;
@@ -424,17 +409,17 @@ public class ClientApp {
         @Override
         public void onGameOver(String winnerName) {
             if (NetworkProtocol.R_MATCH_STOPPED_BY_HOST.equals(winnerName)) {
-                System.out.println(BOLD + YELLOW + "⚠ Match stopped by host." + RESET);
+                System.out.println(BOLD + YELLOW + "⚠ Partida encerrada pelo host." + RESET);
             } else {
-                System.out.println(BOLD + GREEN + "✓ Game over. Winner: " + winnerName + RESET);
+                System.out.println(BOLD + GREEN + "✓ Fim de jogo. Vencedor: " + winnerName + RESET);
             }
-            System.out.println(CYAN + "Staying connected in lobby. Waiting for next match..." + RESET);
+            System.out.println(CYAN + "Permanecendo conectado no lobby. Aguardando a proxima partida..." + RESET);
         }
 
         @Override
         public void onDisconnect(String reason) {
-            System.out.println(RED + "Disconnected: " + reason + RESET);
-            shutdownClient("Connection closed.");
+            System.out.println(RED + "Desconectado: " + reason + RESET);
+            shutdownClient("Conexao encerrada.");
         }
 
         private void shutdownClient(String reason) {
@@ -458,9 +443,9 @@ public class ClientApp {
 
         private void printLobbySnapshot() {
             if (lastPlayersSummary == null || lastPlayersSummary.isEmpty()) {
-                System.out.println(YELLOW + "Players: (no update yet)" + RESET);
+                System.out.println(YELLOW + "Jogadores: (sem atualizacao ainda)" + RESET);
             } else {
-                System.out.println(CYAN + "Players: " + lastPlayersSummary + RESET);
+                System.out.println(CYAN + "Jogadores: " + lastPlayersSummary + RESET);
             }
         }
 
@@ -473,11 +458,11 @@ public class ClientApp {
 
         private static void printHand(String handDesc) {
             if (handDesc == null || handDesc.isEmpty()) {
-                System.out.println(YELLOW + "Hand: (empty)" + RESET);
+                System.out.println(YELLOW + "Mao: (vazia)" + RESET);
                 return;
             }
 
-            System.out.println(YELLOW + "Hand:" + RESET);
+            System.out.println(YELLOW + "Mao:" + RESET);
 
             String[] cards = handDesc.split(",");
 
@@ -489,21 +474,21 @@ public class ClientApp {
         }
 
         private static void printPlayerHelp() {
-            System.out.println(BOLD + CYAN + "\n═══ Available Commands ═══" + RESET);
-            System.out.println(GREEN + "  help" + RESET + "                Show command list");
-            System.out.println(GREEN + "  state" + RESET + "               Reprint top card and prompt");
-            System.out.println(GREEN + "  hand" + RESET + "                Reprint your hand");
-            System.out.println(GREEN + "  players" + RESET + "             Show player summary");
-            System.out.println(GREEN + "  actions" + RESET + "             Show labeled options");
-            System.out.println(GREEN + "  choose <action-id>" + RESET + "  Submit one action");
-            System.out.println(GREEN + "  <number>" + RESET + "            Shortcut for choose <number>");
-            System.out.println(GREEN + "  disconnect" + RESET + "          Leave and return to menu");
+            System.out.println(BOLD + CYAN + "\n═══ Comandos Disponiveis ═══" + RESET);
+            System.out.println(GREEN + "  help" + RESET + "                Mostrar lista de comandos");
+            System.out.println(GREEN + "  state" + RESET + "               Reimprimir carta do topo e prompt");
+            System.out.println(GREEN + "  hand" + RESET + "                Reimprimir sua mao");
+            System.out.println(GREEN + "  players" + RESET + "             Mostrar resumo dos jogadores");
+            System.out.println(GREEN + "  actions" + RESET + "             Mostrar opcoes rotuladas");
+            System.out.println(GREEN + "  choose <action-id>" + RESET + "  Enviar uma acao");
+            System.out.println(GREEN + "  <number>" + RESET + "            Atalho para choose <number>");
+            System.out.println(GREEN + "  disconnect" + RESET + "          Sair e voltar ao menu");
             System.out.println();
         }
 
         private static void printDecisionLabels(String handDesc, int[] validInputs, int[] playableCardIds, String decisionId, String promptText) {
             List<CardEntry> cards = parseHand(handDesc);
-            System.out.println(BOLD + CYAN + "Options:" + RESET);
+            System.out.println(BOLD + CYAN + "Opcoes:" + RESET);
 
             for (int action : validInputs) {
                 String description = describeAction(action, cards, playableCardIds, decisionId, promptText);
@@ -516,19 +501,19 @@ public class ClientApp {
 
             if (NetworkProtocol.D_CHOOSE_COLOR.equals(id)) {
                 if (action == 1 || action == NetworkProtocol.MASK_COLOR_RED) {
-                    return RED + "Choose color RED" + RESET;
+                    return RED + "Escolher a cor VERMELHO" + RESET;
                 }
 
                 if (action == 2 || action == NetworkProtocol.MASK_COLOR_GREEN) {
-                    return GREEN + "Choose color GREEN" + RESET;
+                    return GREEN + "Escolher a cor VERDE" + RESET;
                 }
 
                 if (action == 3 || action == NetworkProtocol.MASK_COLOR_BLUE) {
-                    return BLUE + "Choose color BLUE" + RESET;
+                    return BLUE + "Escolher a cor AZUL" + RESET;
                 }
 
                 if (action == 4 || action == NetworkProtocol.MASK_COLOR_YELLOW) {
-                    return YELLOW + "Choose color YELLOW" + RESET;
+                    return YELLOW + "Escolher a cor AMARELO" + RESET;
                 }
             }
 
@@ -555,18 +540,18 @@ public class ClientApp {
             }
 
             if (NetworkProtocol.D_SWAP_HANDS_TARGET.equals(id)) {
-                return "Swap hands with player #" + action;
+                return "Trocar mao com o jogador #" + action;
             }
 
             if (NetworkProtocol.D_UNKNOWN.equals(id) && action == 1) {
-                return GREEN + "Yes / Option 1" + RESET;
+                return GREEN + "Sim / Opcao 1" + RESET;
             }
 
             if (NetworkProtocol.D_UNKNOWN.equals(id) && action == 2) {
-                return RED + "No / Option 2" + RESET;
+                return RED + "Nao / Opcao 2" + RESET;
             }
 
-            return "Action";
+            return "Acao";
         }
 
         private static boolean isBinaryDecision(String decisionId) {
@@ -587,10 +572,10 @@ public class ClientApp {
             String cardLabel = findCardLabelById(cards, cardId);
 
             if (cardLabel != null) {
-                return "Play card #" + GREEN + action + RESET + " (" + cardLabel + ")";
+                return "Jogar carta #" + GREEN + action + RESET + " (" + cardLabel + ")";
             }
 
-            return "Play card #" + GREEN + action + RESET;
+            return "Jogar carta #" + GREEN + action + RESET;
         }
 
         private static String describePlayableCardFallback(int action, List<CardEntry> cards, int[] playableCardIds) {
@@ -598,16 +583,16 @@ public class ClientApp {
                 if (playableCardIds[i] != action) continue;
 
                 if (i >= 0 && i < cards.size()) {
-                    return "Play card #" + GREEN + i + RESET + " (" + cards.get(i).label + ")";
+                    return "Jogar carta #" + GREEN + i + RESET + " (" + cards.get(i).label + ")";
                 }
 
-                return "Play card";
+                return "Jogar carta";
             }
 
             for (int i = 0; i < cards.size(); i++) {
                 CardEntry card = cards.get(i);
                 if (card.cardId == action) {
-                    return "Play card #" + GREEN + i + RESET + " (" + card.label + ")";
+                    return "Jogar carta #" + GREEN + i + RESET + " (" + card.label + ")";
                 }
             }
 
@@ -628,33 +613,33 @@ public class ClientApp {
                     ? NetworkProtocol.D_UNKNOWN : decisionId;
 
             if (NetworkProtocol.D_PLAY_OR_DRAW.equals(id)) {
-                return yes ? GREEN + "Play a card" + RESET : RED + "Draw a card" + RESET;
+                return yes ? GREEN + "Jogar uma carta" + RESET : RED + "Comprar uma carta" + RESET;
             }
 
             if (NetworkProtocol.D_PLAY_WHEN_CANNOT_DRAW.equals(id)) {
-                return yes ? GREEN + "Play a card" + RESET : RED + "Do not play" + RESET;
+                return yes ? GREEN + "Jogar uma carta" + RESET : RED + "Nao jogar" + RESET;
             }
 
             if (NetworkProtocol.D_PLAY_DRAWN_CARD.equals(id)) {
-                return yes ? GREEN + "Play the drawn card" + RESET : RED + "Keep it" + RESET;
+                return yes ? GREEN + "Jogar a carta comprada" + RESET : RED + "Ficar com ela" + RESET;
             }
 
             if (NetworkProtocol.D_STACK_OR_DRAW.equals(id)) {
-                return yes ? GREEN + "Stack a card" + RESET : RED + "Draw penalty cards" + RESET;
+                return yes ? GREEN + "Empilhar uma carta" + RESET : RED + "Comprar cartas de penalidade" + RESET;
             }
 
             if (NetworkProtocol.D_PLAY_IDENTICAL.equals(id)) {
-                return yes ? GREEN + "Play another identical card" + RESET
-                        : RED + "Do not play another" + RESET;
+                return yes ? GREEN + "Jogar outra carta identica" + RESET
+                        : RED + "Nao jogar outra" + RESET;
             }
 
             if (NetworkProtocol.D_CHALLENGE_DRAW_FOUR.equals(id)) {
-                return yes ? GREEN + "Challenge" + RESET : RED + "Do not challenge" + RESET;
+                return yes ? GREEN + "Desafiar" + RESET : RED + "Nao desafiar" + RESET;
             }
 
-            String prompt = (promptText == null || promptText.isEmpty()) ? "(no prompt)" : promptText;
-            System.err.println("[DEBUG] Unmapped binary decision ID: " + id + " | prompt: \"" + prompt + "\"");
-            return yes ? GREEN + "Yes" + RESET : RED + "No" + RESET;
+            String prompt = (promptText == null || promptText.isEmpty()) ? "(sem prompt)" : promptText;
+            System.err.println("[DEBUG] ID de decisao binaria nao mapeado: " + id + " | prompt: \"" + prompt + "\"");
+            return yes ? GREEN + "Sim" + RESET : RED + "Nao" + RESET;
         }
 
         private static List<CardEntry> parseHand(String handDesc) {

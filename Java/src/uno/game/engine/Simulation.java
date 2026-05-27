@@ -1,7 +1,6 @@
 package uno.game.engine;
 
 import uno.game.event.GameEventListener;
-import uno.game.event.Spectator;
 import uno.game.loggers.Logger;
 import uno.game.players.Player;
 import uno.game.players.PlayerAI;
@@ -20,45 +19,6 @@ import java.util.Random;
 import java.util.function.Consumer;
 
 public class Simulation {
-    private final Player[] players;
-    private final Deck drawDeck;
-    private final Deck discardPile;
-    private final ConnectionAI ConnectionAI;
-    private boolean gameOver;
-    private Player winner;
-    private int turnCounter = 0;
-    private double[] observationVector;
-    private double[] decisionMask;
-    private double[] previousPlayerHandObservation;
-    private int[] validInputs;
-    private int[] playableCardIdsForNetwork = new int[0];
-    private volatile boolean networkBotFirstDecisionDelayDone = false;
-    private String id;
-    private int seed;
-    private boolean debug = false;
-    private final boolean[] rules;
-    private int stackingAmount = 0;
-    private boolean previousPlayerBluffed = false;
-
-    private int currentPlayerIndex = 0;
-    private int direction = 1; // +1 forward, -1 backward
-
-    private Logger logger = null;
-    private final ArrayList<Spectator> spectators = new ArrayList<>();
-
-    private final boolean RULE_STACKING;
-    private final boolean RULE_SKIP_N_FLIP;
-    private final boolean RULE_SEVEN_ZERO;
-    private final boolean RULE_FORCE_PLAY_DRAWN;
-    private final boolean RULE_DRAW_AND_PLAY;
-    private final boolean RULE_DRAW_TO_MATCH;
-    private final boolean RULE_BLUFFING;
-    private final boolean RULE_PLAY_IDENTICAL;
-
-    private boolean human;
-    private boolean ai;
-    private boolean random;
-
     private static final int MASK_COLOR_RED = 55;
     private static final int MASK_COLOR_GREEN = 56;
     private static final int MASK_COLOR_BLUE = 57;
@@ -76,6 +36,40 @@ public class Simulation {
     private static final int FLAG_SWAP_HANDS = OBS_SIZE - 7; // index 182
     private static final int FLAG_CHOOSE_COLOR = OBS_SIZE - 8; // index 181
     private static final int FLAG_PLAY_IDENTICAL = OBS_SIZE - 9; // index 180
+
+    private final Player[] players;
+    private final Deck drawDeck;
+    private final Deck discardPile;
+    private final ConnectionAI ConnectionAI;
+    private final boolean[] rules;
+    private final boolean RULE_STACKING;
+    private final boolean RULE_SKIP_N_FLIP;
+    private final boolean RULE_SEVEN_ZERO;
+    private final boolean RULE_FORCE_PLAY_DRAWN;
+    private final boolean RULE_DRAW_AND_PLAY;
+    private final boolean RULE_DRAW_TO_MATCH;
+    private final boolean RULE_BLUFFING;
+    private final boolean RULE_PLAY_IDENTICAL;
+
+    private boolean gameOver;
+    private Player winner;
+    private int turnCounter = 0;
+    private int currentPlayerIndex = 0;
+    private int direction = 1; // +1 forward, -1 backward
+    private int stackingAmount = 0;
+    private boolean previousPlayerBluffed = false;
+    private boolean human;
+    private boolean ai;
+    private boolean random;
+    private boolean debug = false;
+    private String id;
+    private int seed;
+    private double[] observationVector;
+    private double[] decisionMask;
+    private double[] previousPlayerHandObservation;
+    private int[] validInputs;
+    private int[] playableCardIdsForNetwork = new int[0];
+    private Logger logger = null;
 
     public Simulation(int numHumanPlayers, int numAIPlayers, int numRandomPlayers, ConnectionAI ConnectionAI, boolean[] rules, String id, int seed) {
         Player[] players = new Player[numHumanPlayers + numAIPlayers + numRandomPlayers];
@@ -188,7 +182,6 @@ public class Simulation {
     }
 
     public void startGame() {
-        networkBotFirstDecisionDelayDone = false;
         fire(listener -> listener.onGameStart(players, rules, discardPile.peekTopCard()));
     }
 
@@ -771,7 +764,8 @@ public class Simulation {
 
         // 4. Index 162-171: Amount of cards in each opponent's hand
         for (int i = 0; i < players.length; i++) {
-            observationVector[162 + i] = ((double) players[i].getCards().size()) / 20;
+            int playerIndex = Math.floorMod(currentPlayerIndex + direction * (i + 1), players.length);
+            observationVector[162 + i] = ((double) players[playerIndex].getCards().size()) / 20;
         }
 
         // 4. Index 162-171: Set -1 for players that are not in the game (in case of less than 10 players)
@@ -781,7 +775,11 @@ public class Simulation {
 
         // 5. Index 172-179: Flags for the rules
         for (int i = 172; i < 180; i++) {
-            observationVector[i] = rules[i - 172] ? 1 : 0;
+            if (rules[i - 172]) {
+                observationVector[i] = 1.0;
+            } else {
+                observationVector[i] = 0.0;
+            }
         }
 
         // 6. Index 180-188: Additional flags (set to 0 for now, can be updated based on the situation in the game outside of this method)
@@ -811,15 +809,6 @@ public class Simulation {
         return decisionMask;
     }
 
-    private int decodeInput(int raw, int maskOffset) {
-        if (ai) {
-            return raw -  maskOffset;
-        } else {
-            return raw - 1;
-        }
-    }
-
-    /** Used to slow bot turns when at least one human plays over the network. */
     public boolean hasNetworkHumanPlayer() {
         for (Player p : players) {
             if (p instanceof PlayerNetwork) {
@@ -831,22 +820,6 @@ public class Simulation {
 
     public boolean isGameOver() {
         return gameOver;
-    }
-
-    private void fire(Consumer<GameEventListener> event) {
-        if (logger != null) {
-            event.accept(logger);
-        }
-
-        for (Spectator spectator : spectators) {
-            event.accept(spectator);
-        }
-
-        for (Player player : players) {
-            if (player instanceof GameEventListener) {
-                event.accept((GameEventListener) player);
-            }
-        }
     }
 
     public double[] getObservationVector() {
@@ -951,11 +924,16 @@ public class Simulation {
         int currentOwnHandSize = getHandSize(player);
         int currentNextOpponentHandSize = getNextOpponentHandSize(player);
 
-        double ownHandDelta = 0.03 * (previousOwnHandSize - currentOwnHandSize);
-        double opponentPressureDelta = 0.01 * (currentNextOpponentHandSize - previousNextOpponentHandSize);
-        double stepCost = -0.001;
+        double maxHandSize = 20.0;
+        double prevProximity = 1.0 - Math.min(previousOwnHandSize, (int) maxHandSize) / maxHandSize;
+        double currProximity = 1.0 - Math.min(currentOwnHandSize, (int) maxHandSize) / maxHandSize;
+        double proximityDelta = currProximity - prevProximity;
 
-        return ownHandDelta + opponentPressureDelta + stepCost;
+        double proximityReward = (0.2 * proximityDelta) + (0.02 * currProximity);
+        double opponentPressureDelta = 0.005 * (currentNextOpponentHandSize - previousNextOpponentHandSize);
+        double stepCost = -0.0001;
+
+        return proximityReward + opponentPressureDelta + stepCost;
     }
 
     public int getStackingAmount() {
@@ -974,7 +952,25 @@ public class Simulation {
         this.logger = logger;
     }
 
-    public void addSpectator(Spectator spectator) {
-        spectators.add(spectator);
+    private int decodeInput(int raw, int maskOffset) {
+        if (ai) {
+            return raw -  maskOffset;
+        } else {
+            return raw - 1;
+        }
+    }
+
+    private void fire(Consumer<GameEventListener> event) {
+        if (logger != null) {
+            event.accept(logger);
+        }
+
+
+        for (Player player : players) {
+            if (player instanceof GameEventListener) {
+                event.accept((GameEventListener) player);
+            }
+        }
     }
 }
+

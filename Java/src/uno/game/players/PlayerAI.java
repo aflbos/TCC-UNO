@@ -6,7 +6,6 @@ import uno.ai.network.ConnectionAI;
 import java.util.ArrayList;
 
 public class PlayerAI extends Player {
-    private static final int DEFAULT_DECISION_DELAY_MS = 2000;
     private final ConnectionAI ConnectionAI;
     private boolean rewardBaselineInitialized = false;
     private int previousOwnHandSize = -1;
@@ -19,8 +18,6 @@ public class PlayerAI extends Player {
     }
 
     public int getInput() {
-        applyHumanFacingDecisionDelay();
-
         int input;
         double invalidActionPenalty = 0;
         double reward = 0;
@@ -54,58 +51,14 @@ public class PlayerAI extends Player {
 
             backendUnavailable = false;
 
-            if (input != -1) {
-                if (decisionMask[input] != 0) {
-                    invalidActionPenalty -= 0.1;
-                }
+            if (input != -1 && decisionMask[input] != 0) {
+                return input;
             }
+
+            invalidActionPenalty -= 0.1;
         }
     }
 
-    private void applyHumanFacingDecisionDelay() {
-        if (simulation == null) {
-            return;
-        }
-
-        int delayMs = getDecisionDelayMs();
-        if (delayMs <= 0) {
-            return;
-        }
-
-        if (isHumanOnlyDelay() && !hasHumanParticipant()) {
-            return;
-        }
-
-        try {
-            Thread.sleep(delayMs);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private boolean hasHumanParticipant() {
-
-        for (Player player : simulation.getPlayers()) {
-            if (player instanceof PlayerHuman || player instanceof PlayerNetwork) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int getDecisionDelayMs() {
-        String raw = System.getProperty("uno.ai.delay.ms", String.valueOf(DEFAULT_DECISION_DELAY_MS)).trim();
-        try {
-            return Math.max(0, Integer.parseInt(raw));
-        } catch (NumberFormatException ignored) {
-            return DEFAULT_DECISION_DELAY_MS;
-        }
-    }
-
-    private static boolean isHumanOnlyDelay() {
-        return Boolean.parseBoolean(System.getProperty("uno.ai.delay.humanOnly", "true"));
-    }
 
     @Override
     public void onGameOver(Player winner) {
@@ -119,9 +72,9 @@ public class PlayerAI extends Player {
             reward += simulation.computeShapedReward(this, previousOwnHandSize, previousNextOpponentHandSize);
         }
 
-        if (winner == this) reward += 1.0;
-        else if (winner == null) reward -= 0.2;
-        else reward -= 1.0;
+        if (winner == this) reward += 2.0;
+        else if (winner == null) reward -= 0.5;
+        else reward -= 2.0;
 
         try {
             ConnectionAI.askAction(simulation.getObservationVector(), simulation.getDecisionMask(), reward, true);

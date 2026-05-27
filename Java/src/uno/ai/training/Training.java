@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class Training {
 
-    private static final String DEFAULT_CONFIG = "res/training_default_config.properties";
+    private static final String DEFAULT_CONFIG = "res/training_official_4p_100.properties";
 
     public static void main(String[] args) {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
@@ -47,6 +47,7 @@ public class Training {
         
         for (int i = 0; i < loopStart; i++) {
             runPhase(phases.get(i), id, ConnectionAI);
+            printCycleComplete(id, i + 1, phases.get(i));
         }
         
         if (config.loopInfinite) {
@@ -54,6 +55,7 @@ public class Training {
                 try {
                     for (int i = loopStart; i < phases.size(); i++) {
                         runPhase(phases.get(i), id, ConnectionAI);
+                        printCycleComplete(id, i + 1, phases.get(i));
                     }
                 } catch (Exception e) {
                     System.err.println(id + ". Unhandled exception in training loop.");
@@ -63,6 +65,7 @@ public class Training {
         } else {
             for (int i = loopStart; i < phases.size(); i++) {
                 runPhase(phases.get(i), id, ConnectionAI);
+                printCycleComplete(id, i + 1, phases.get(i));
             }
         }
     }
@@ -146,5 +149,10 @@ public class Training {
                 "Bluffing: " + phase.ruleSpecs[6] + ", " +
                 "Play Identical: " + phase.ruleSpecs[7]
         );
+    }
+
+    private static void printCycleComplete(String id, int phaseIndex, TrainingPhase phase) {
+        String label = phase != null && phase.type != null ? phase.type.name() : "UNKNOWN";
+        System.out.println(id + ". Training cycle completed (phase " + phaseIndex + ", " + label + ").");
     }
 }

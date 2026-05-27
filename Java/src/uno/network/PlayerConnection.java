@@ -100,7 +100,7 @@ public class PlayerConnection {
                     try {
                         return Integer.parseInt(parts[1].trim());
                     } catch (NumberFormatException e) {
-                        sendNotification("Invalid action - please send a number.");
+                        sendNotification("Acao invalida - envie um numero.");
                     }
                     continue;
                 }
@@ -109,7 +109,7 @@ public class PlayerConnection {
                     throw new IOException("Client '" + playerName + "' left the game.");
                 }
 
-                sendNotification("Unexpected command while waiting for an action.");
+                sendNotification("Comando inesperado enquanto aguardava uma acao.");
             }
         } finally {
             if (!socket.isClosed()) {

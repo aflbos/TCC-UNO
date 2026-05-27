@@ -32,7 +32,7 @@ public class PlayerHuman extends Player implements GameEventListener {
                 }
             }
             if (!validInput) {
-                System.out.println("Invalid input. Please try again.");
+                System.out.println("Entrada invalida. Tente novamente.");
             }
         }
 
@@ -41,112 +41,112 @@ public class PlayerHuman extends Player implements GameEventListener {
 
     @Override
     public void onTurnStart(Player player, Card topCard, ArrayList<Card> hand, ArrayList<Card> playableCards) {
-        System.out.println("\nIt's " + player.getName() + "'s turn.");
-        System.out.println("Top card: " + topCard);
-        System.out.println("Your hand:");
+        System.out.println("\nVez de " + player.getName() + ".");
+        System.out.println("Carta do topo: " + topCard);
+        System.out.println("Sua mao:");
 
         for (int i = 0; i < hand.size(); i++) {
             System.out.println("  " + i + ": " + hand.get(i));
         }
 
         if (playableCards.isEmpty()) {
-            System.out.println("You have no playable cards.");
+            System.out.println("Voce nao tem cartas jogaveis.");
         } else {
-            System.out.println("Playable cards: " + playableCards);
+            System.out.println("Cartas jogaveis: " + playableCards);
         }
     }
 
     @Override
     public void onCardPlayed(Player player, Card card) {
         if (player != this) {
-            System.out.println(player.getName() + " played " + card + ".");
+            System.out.println(player.getName() + " jogou " + card + ".");
         }
     }
 
     @Override
     public void onCardDrawn(Player player, Card drawn) {
         if (player == this) {
-            System.out.println("You drew: " + drawn);
+            System.out.println("Voce comprou: " + drawn);
         } else {
-            System.out.println(player.getName() + " drew a card.");
+            System.out.println(player.getName() + " comprou uma carta.");
         }
     }
 
     @Override
     public void onTurnEnd(Player player) {
-        System.out.println("End of " + player.getName() + "'s turn.\n");
+        System.out.println("Fim da vez de " + player.getName() + ".\n");
     }
 
     @Override
     public void onPlayOrDrawDecision(Player player) {
-        System.out.println("Play a card or draw? (1. Play, 2. Draw)");
+        System.out.println("Jogar uma carta ou comprar? (1. Jogar, 2. Comprar)");
     }
 
     @Override
     public void onPlayDrawnCardDecision(Player player, Card drawn) {
-        System.out.println("Do you want to play the drawn card (" + drawn + ")? (1. Yes, 2. No)");
+        System.out.println("Voce quer jogar a carta comprada (" + drawn + ")? (1. Sim, 2. Nao)");
     }
 
     @Override
     public void onStackDecision(Player player, int pendingPenalty) {
-        System.out.println("Stack a card to pass the penalty of " + pendingPenalty + " cards, or draw them? (1. Stack, 2. Draw)");
+        System.out.println("Empilhar para passar a penalidade de " + pendingPenalty + " cartas ou comprar? (1. Empilhar, 2. Comprar)");
     }
 
     @Override
     public void onChallengeDecision(Player player) {
-        System.out.println("The top card is a Draw Four. Challenge it? (1. Yes, 2. No)");
+        System.out.println("A carta do topo e um COMPRA QUATRO. Desafiar? (1. Sim, 2. Nao)");
     }
 
     @Override
     public void onColorChoiceDecision(Player player) {
-        System.out.println("Choose a color. (1. RED, 2. GREEN, 3. BLUE, 4. YELLOW)");
+        System.out.println("Escolha uma cor. (1. VERMELHO, 2. VERDE, 3. AZUL, 4. AMARELO)");
     }
 
     @Override
     public void onSwapHandsDecision(Player player, int numPlayers) {
-        System.out.println("SEVEN played! Swap hands with which player? (1-" + numPlayers + ")");
+        System.out.println("SETE jogado! Trocar maos com qual jogador? (1-" + numPlayers + ")");
     }
 
     @Override
     public void onPlayWhenCannotDrawDecision(Player player) {
-        System.out.println("You cannot draw. Do you want to play a card? (1. Yes, 2. No)");
+        System.out.println("Voce nao pode comprar. Deseja jogar uma carta? (1. Sim, 2. Nao)");
     }
 
     @Override
     public void onIdenticalCardDecision(Player player, ArrayList<Card> identical) {
-        System.out.println("You have identical cards that can also be played: " + identical);
-        System.out.println("Play another? (1. Yes, 2. No)");
+        System.out.println("Voce tem cartas identicas que tambem podem ser jogadas: " + identical);
+        System.out.println("Jogar outra? (1. Sim, 2. Nao)");
     }
 
     @Override
     public void onForcedDraw(Player player) {
-        System.out.println("You have no playable cards and must draw.");
+        System.out.println("Voce nao tem cartas jogaveis e deve comprar.");
     }
 
     @Override
     public void onCannotPlayOrDraw(Player player) {
-        System.out.println("You have no playable cards and cannot draw. Turn skipped.");
+        System.out.println("Voce nao tem cartas jogaveis e nao pode comprar. Vez pulada.");
     }
 
     @Override
     public void onDrawnCardNotPlayable(Player player, Card drawn) {
-        System.out.println("The drawn card (" + drawn + ") is not playable. Turn over.");
+        System.out.println("A carta comprada (" + drawn + ") nao pode ser jogada. Vez encerrada.");
     }
 
     @Override
     public void onPassedTurn(Player player) {
-        System.out.println("You chose not to play a card. Turn over.");
+        System.out.println("Voce escolheu nao jogar uma carta. Vez encerrada.");
     }
 
     @Override
     public void onDeckEmpty() {
-        System.out.println("The deck is empty and cannot be reshuffled.");
+        System.out.println("O baralho acabou e nao pode ser reembaralhado.");
     }
 
     @Override
     public void onGameStart(Player[] players, boolean[] rules, Card firstCard) {
-        System.out.println("Game started! First card: " + firstCard);
-        System.out.print("Players: ");
+        System.out.println("Partida iniciada! Primeira carta: " + firstCard);
+        System.out.print("Jogadores: ");
         for (int i = 0; i < players.length; i++) {
             System.out.print(players[i].getName());
             if (i < players.length - 1) System.out.print(", ");
@@ -157,9 +157,9 @@ public class PlayerHuman extends Player implements GameEventListener {
     @Override
     public void onGameOver(Player winner) {
         if (winner != null) {
-            System.out.println("\n" + winner.getName() + " wins the game!");
+            System.out.println("\n" + winner.getName() + " venceu a partida!");
         } else {
-            System.out.println("\nThe game ended in a draw (turn limit reached).");
+            System.out.println("\nA partida terminou em empate (limite de turnos atingido).");
         }
     }
 }

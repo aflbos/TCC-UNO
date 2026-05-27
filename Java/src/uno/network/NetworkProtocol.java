@@ -44,11 +44,11 @@ public final class NetworkProtocol {
     public static final String D_PLAY_IDENTICAL = "PLAY_IDENTICAL";
 
     // Host transition notice templates.
-    public static final String N_MATCH_STARTED = "Match started.";
-    public static final String N_MATCH_STOPPED = "Match stopped by host. Waiting in lobby.";
-    public static final String N_MATCH_FINISHED_WINNER = "Match finished. Winner: %s.";
-    public static final String N_MATCH_FINISHED_DRAW = "Match finished. Result: DRAW.";
-    public static final String N_MATCH_ENDED_EARLY = "Match ended early.";
+    public static final String N_MATCH_STARTED = "Partida iniciada.";
+    public static final String N_MATCH_STOPPED = "Partida encerrada pelo host. Aguardando no lobby.";
+    public static final String N_MATCH_FINISHED_WINNER = "Partida encerrada. Vencedor: %s.";
+    public static final String N_MATCH_FINISHED_DRAW = "Partida encerrada. Resultado: EMPATE.";
+    public static final String N_MATCH_ENDED_EARLY = "Partida encerrada antes do fim.";
 
     // GAME_OVER reason tokens.
     public static final String R_MATCH_STOPPED_BY_HOST = "MATCH_STOPPED_BY_HOST";

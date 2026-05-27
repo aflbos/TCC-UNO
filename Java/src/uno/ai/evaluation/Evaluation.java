@@ -52,6 +52,9 @@ public class Evaluation {
         System.out.println("All evaluation sessions completed.");
     }
 
+    /**
+     * Executa uma thread de trabalho: conecta no backend, roda suites e entra em keep-alive.
+     */
     private static void runWorker(int port, String id, ConnectionAI ConnectionAI, List<EvaluationSuite> suites) {
         try {
             ConnectionAI.connect(port);
@@ -66,6 +69,9 @@ public class Evaluation {
         runKeepAlive(id, ConnectionAI);
     }
 
+    /**
+     * Roda uma suite especifica, dividindo seeds entre workers.
+     */
     private static void runSuite(EvaluationSuite suite, String id, ConnectionAI ConnectionAI) {
         int[] assignedSeeds = divideSeeds(suite.seeds, id);
         if (assignedSeeds.length == 0) return;
@@ -83,6 +89,9 @@ public class Evaluation {
         }
     }
 
+    /**
+     * Roda uma suite EXHAUSTIVE: testa todas as combinacoes de AI vs Random (2 a 10 jogadores).
+     */
     private static void runExhaustiveSuite(EvaluationSuite suite, int[] seeds,
                                            String id, ConnectionAI ConnectionAI) {
         Random rng      = new Random();
@@ -106,6 +115,9 @@ public class Evaluation {
         printScore(suite.name, id, scoreAI, scoreRandom, draws);
     }
 
+    /**
+     * Roda uma suite FIXED com quantidade fixa de AI e Random.
+     */
     private static void runFixedSuite(EvaluationSuite suite, int[] seeds,
                                       String id, ConnectionAI ConnectionAI) {
         Random rng      = new Random();
@@ -125,6 +137,9 @@ public class Evaluation {
         printScore(suite.name, id, scoreAI, scoreRandom, draws);
     }
 
+    /**
+     * Mantem o backend ocupado com partidas dummy ate a conexao cair.
+     */
     private static void runKeepAlive(String id, ConnectionAI ConnectionAI) {
         boolean[] noRules = new boolean[8];
         Simulation dummy = new Simulation(0, 1, 1, ConnectionAI, noRules, id, -1);
@@ -141,6 +156,9 @@ public class Evaluation {
         }
     }
 
+    /**
+     * Executa uma partida completa e retorna o resultado agregado.
+     */
     private static GameResult runGame(int aiPlayers, int randomPlayers, int seed,
                                       boolean[] rules, String id, ConnectionAI ConnectionAI) {
         Simulation simulation = new Simulation(0, aiPlayers, randomPlayers, ConnectionAI, rules, id, seed);
@@ -153,6 +171,9 @@ public class Evaluation {
         return GameResult.DRAW;
     }
     
+    /**
+     * Divide as seeds proporcionalmente entre workers (com base no id "Eval N").
+     */
     private static int[] divideSeeds(int[] seeds, String id) {
         int workerIndex = parseWorkerIndex(id);
         int totalWorkers = countWorkers();
@@ -164,6 +185,9 @@ public class Evaluation {
         return slice;
     }
 
+    /**
+     * Extrai o indice (0-based) do worker a partir do id.
+     */
     private static int parseWorkerIndex(String id) {
         try {
             return Integer.parseInt(id.split("\\s+")[1]) - 1;
@@ -178,12 +202,16 @@ public class Evaluation {
         return numClientsGlobal;
     }
 
+    /**
+     * Registra o placar final de uma suite.
+     */
     private static void printScore(String suiteName, String id,
                                    int aiWins, int randomWins, int draws) {
         System.out.println(id + ". [" + suiteName + "] Done — " +
                 aiWins + " AI wins, " + randomWins + " Random wins, " + draws + " draws.");
     }
 
+    /** Resultado agregado de uma partida (ai, random, empate). */
     private static final class GameResult {
         final int aiWins, randomWins, draws;
 

@@ -26,8 +26,7 @@ public class PlayerNetwork extends Player implements GameEventListener {
     public int getInput() {
         int[] validInputs = simulation.getValidInputs();
         String handDesc = buildHandDescription();
-        String topCard = simulation.getTopCard() != null
-                ? simulation.getTopCard().toString() : "?";
+        String topCard = simulation.getTopCard() != null ? simulation.getTopCard().toString() : "?";
         DecisionContext decision = buildDecisionContext();
 
         int[] playableIds = simulation.getPlayableCardIdsForNetwork();
@@ -39,8 +38,8 @@ public class PlayerNetwork extends Player implements GameEventListener {
                 if (isValid(input, validInputs)) {
                     return input;
                 }
-                conn.sendNotification("Invalid action (" + input
-                        + "). Valid options: " + joinInts(validInputs));
+                conn.sendNotification("Acao invalida (" + input
+                        + "). Opcoes validas: " + joinInts(validInputs));
             } catch (IOException e) {
                 throw new RuntimeException(
                         "Player '" + getName() + "' disconnected during their turn.", e);
@@ -51,28 +50,28 @@ public class PlayerNetwork extends Player implements GameEventListener {
     @Override
     public void onTurnStart(Player player, Card topCard, ArrayList<Card> hand, ArrayList<Card> playableCards) {
         if (player == this) {
-            conn.sendNotification("It's your turn!");
+            conn.sendNotification("E a sua vez!");
             conn.sendPlayerUpdate(buildOpponentSummary());
         } else {
-            conn.sendNotification("It's " + player.getName() + "'s turn.  "
-                    + "Top card: " + topCard + ".  "
-                    + "They have " + hand.size() + " cards.");
+            conn.sendNotification("E a vez de " + player.getName() + ".  "
+                    + "Carta do topo: " + topCard + ".  "
+                    + "Ele(a) tem " + hand.size() + " cartas.");
             conn.sendPlayerUpdate(buildOpponentSummary());
         }
     }
 
     @Override
     public void onCardPlayed(Player player, Card card) {
-        conn.sendNotification(player.getName() + " played " + card + ".");
+        conn.sendNotification(player.getName() + " jogou " + card + ".");
         conn.sendPlayerUpdate(buildOpponentSummary());
     }
 
     @Override
     public void onCardDrawn(Player player, Card drawn) {
         if (player == this) {
-            conn.sendNotification("You drew: " + drawn + ".");
+            conn.sendNotification("Voce comprou: " + drawn + ".");
         } else {
-            conn.sendNotification(player.getName() + " drew a card.");
+            conn.sendNotification(player.getName() + " comprou uma carta.");
             conn.sendPlayerUpdate(buildOpponentSummary());
         }
     }
@@ -80,153 +79,140 @@ public class PlayerNetwork extends Player implements GameEventListener {
     @Override
     public void onTurnEnd(Player player) {
         if (player != this) {
-            conn.sendNotification("End of " + player.getName() + "'s turn.");
+            conn.sendNotification("Fim da vez de " + player.getName() + ".");
         }
     }
 
     @Override
     public void onPlayOrDrawDecision(Player player) {
         if (player == this) {
-            conn.sendNotification("Decision: play a card or draw?");
+            conn.sendNotification("Decisao: jogar uma carta ou comprar?");
         } else {
-            conn.sendNotification(player.getName() + " is deciding whether to play or draw.");
+            conn.sendNotification(player.getName() + " esta decidindo se joga ou compra.");
         }
     }
 
     @Override
     public void onPlayDrawnCardDecision(Player player, Card drawn) {
         if (player == this) {
-            conn.sendNotification("Decision: play the drawn card (" + drawn + ")?");
+            conn.sendNotification("Decisao: jogar a carta comprada (" + drawn + ")?");
         } else {
-            conn.sendNotification(player.getName()
-                    + " drew a card and is deciding whether to play it.");
+            conn.sendNotification(player.getName() + " comprou uma carta e esta decidindo se joga.");
         }
     }
 
     @Override
     public void onStackDecision(Player player, int pendingPenalty) {
         if (player == this) {
-            conn.sendNotification("Decision: stack a card or draw "
-                    + pendingPenalty + " cards?");
+            conn.sendNotification("Decisao: empilhar uma carta ou comprar " + pendingPenalty + " cartas?");
         } else {
-            conn.sendNotification(player.getName()
-                    + " is deciding whether to stack or absorb "
-                    + pendingPenalty + " cards.");
+            conn.sendNotification(player.getName() + " esta decidindo se empilha ou absorve " + pendingPenalty + " cartas.");
         }
     }
 
     @Override
     public void onChallengeDecision(Player player) {
         if (player == this) {
-            conn.sendNotification("Decision: challenge the Draw Four?");
+            conn.sendNotification("Decisao: desafiar o COMPRA QUATRO?");
         } else {
-            conn.sendNotification(player.getName()
-                    + " is deciding whether to challenge the Draw Four.");
+            conn.sendNotification(player.getName() + " esta decidindo se desafia o COMPRA QUATRO.");
         }
     }
 
     @Override
     public void onColorChoiceDecision(Player player) {
         if (player == this) {
-            conn.sendNotification("Decision: choose a color for your wild card.");
+            conn.sendNotification("Decisao: escolher uma cor para o seu coringa.");
         } else {
-            conn.sendNotification(player.getName() + " is choosing a color.");
+            conn.sendNotification(player.getName() + " esta escolhendo uma cor.");
         }
     }
 
     @Override
     public void onSwapHandsDecision(Player player, int numPlayers) {
         if (player == this) {
-            conn.sendNotification("Decision: choose a player to swap hands with.");
+            conn.sendNotification("Decisao: escolher um jogador para trocar as maos.");
         } else {
-            conn.sendNotification(player.getName()
-                    + " played a SEVEN and is choosing who to swap hands with.");
+            conn.sendNotification(player.getName() + " jogou um SETE e esta escolhendo com quem trocar as maos.");
         }
     }
 
     @Override
     public void onPlayWhenCannotDrawDecision(Player player) {
         if (player == this) {
-            conn.sendNotification("Decision: you cannot draw — play a card?");
+            conn.sendNotification("Decisao: voce nao pode comprar — jogar uma carta?");
         } else {
-            conn.sendNotification(player.getName()
-                    + " cannot draw and is deciding whether to play.");
+            conn.sendNotification(player.getName() + " nao pode comprar e esta decidindo se joga.");
         }
     }
 
     @Override
     public void onIdenticalCardDecision(Player player, ArrayList<Card> identical) {
         if (player == this) {
-            conn.sendNotification("Decision: you have identical cards — play another?");
+            conn.sendNotification("Decisao: voce tem cartas identicas — jogar outra?");
         } else {
-            conn.sendNotification(player.getName()
-                    + " may play an additional identical card.");
+            conn.sendNotification(player.getName() + " pode jogar outra carta identica.");
         }
     }
 
     @Override
     public void onForcedDraw(Player player) {
         if (player == this) {
-            conn.sendNotification("You have no playable cards and must draw.");
+            conn.sendNotification("Voce nao tem cartas jogaveis e deve comprar.");
         } else {
-            conn.sendNotification(player.getName()
-                    + " has no playable cards and must draw.");
+            conn.sendNotification(player.getName() + " nao tem cartas jogaveis e deve comprar.");
         }
     }
 
     @Override
     public void onCannotPlayOrDraw(Player player) {
         if (player == this) {
-            conn.sendNotification(
-                    "You have no playable cards and cannot draw — turn skipped.");
+            conn.sendNotification("Voce nao tem cartas jogaveis e nao pode comprar — vez pulada.");
         } else {
-            conn.sendNotification(player.getName()
-                    + " cannot play or draw — turn skipped.");
+            conn.sendNotification(player.getName() + " nao pode jogar ou comprar — vez pulada.");
         }
     }
 
     @Override
     public void onDrawnCardNotPlayable(Player player, Card drawn) {
         if (player == this) {
-            conn.sendNotification(
-                    "The drawn card (" + drawn + ") is not playable — turn over.");
+            conn.sendNotification("A carta comprada (" + drawn + ") nao pode ser jogada — vez encerrada.");
         } else {
-            conn.sendNotification(player.getName()
-                    + " drew a card that wasn't playable — turn over.");
+            conn.sendNotification(player.getName() + " comprou uma carta que nao era jogavel — vez encerrada.");
         }
     }
 
     @Override
     public void onPassedTurn(Player player) {
         if (player == this) {
-            conn.sendNotification("You chose not to play — turn over.");
+            conn.sendNotification("Voce escolheu nao jogar — vez encerrada.");
         } else {
-            conn.sendNotification(player.getName() + " passed their turn.");
+            conn.sendNotification(player.getName() + " passou a vez.");
         }
     }
 
     @Override
     public void onDeckEmpty() {
-        conn.sendNotification("The draw deck is empty and could not be reshuffled.");
+        conn.sendNotification("O baralho de compras acabou e nao pode ser reembaralhado.");
     }
 
     @Override
     public void onGameStart(Player[] players, boolean[] rules, Card firstCard) {
-        StringBuilder sb = new StringBuilder("Game started!  Players: ");
+        StringBuilder sb = new StringBuilder("Partida iniciada!  Jogadores: ");
 
         for (int i = 0; i < players.length; i++) {
             sb.append(players[i].getName());
             if (i < players.length - 1) sb.append(", ");
         }
 
-        sb.append(".  First card: ").append(firstCard).append(".");
+        sb.append(".  Primeira carta: ").append(firstCard).append(".");
         conn.sendNotification(sb.toString());
         conn.sendPlayerUpdate(buildOpponentSummary());
     }
 
     @Override
     public void onGameOver(Player winner) {
-        String winnerName = (winner != null) ? winner.getName() : "DRAW";
+        String winnerName = (winner != null) ? winner.getName() : "EMPATE";
         conn.sendGameOver(winnerName);
     }
 
@@ -263,44 +249,38 @@ public class PlayerNetwork extends Player implements GameEventListener {
     private DecisionContext buildDecisionContext() {
         double[] obs = simulation.getObservationVector();
         if (obs == null || obs.length < 189) {
-            return new DecisionContext(NetworkProtocol.D_UNKNOWN, "Choose an action.");
+            return new DecisionContext(NetworkProtocol.D_UNKNOWN, "Escolha uma acao.");
         }
 
         if (obs[188] != 0) {
-            return new DecisionContext(NetworkProtocol.D_CHALLENGE_DRAW_FOUR,
-                    "The top card is a DRAW FOUR - challenge it?");
+            return new DecisionContext(NetworkProtocol.D_CHALLENGE_DRAW_FOUR, "A carta do topo e um COMPRA QUATRO - desafiar?");
         }
         if (obs[187] != 0) {
-            return new DecisionContext(NetworkProtocol.D_STACK_OR_DRAW,
-                    "Stack a card to pass the penalty of " + simulation.getStackingAmount() + " cards, or draw them?");
+            return new DecisionContext(NetworkProtocol.D_STACK_OR_DRAW, "Empilhar uma carta para passar a penalidade de " + simulation.getStackingAmount() + " cartas ou comprar?");
         }
         if (obs[186] != 0) {
-            return new DecisionContext(NetworkProtocol.D_PLAY_OR_DRAW, "Play a card or draw?");
+            return new DecisionContext(NetworkProtocol.D_PLAY_OR_DRAW, "Jogar uma carta ou comprar?");
         }
         if (obs[185] != 0) {
-            return new DecisionContext(NetworkProtocol.D_PLAY_WHEN_CANNOT_DRAW,
-                    "You cannot draw - play a card?");
+            return new DecisionContext(NetworkProtocol.D_PLAY_WHEN_CANNOT_DRAW, "Voce nao pode comprar - jogar uma carta?");
         }
         if (obs[184] != 0) {
-            return new DecisionContext(NetworkProtocol.D_PLAY_DRAWN_CARD, "Play the drawn card?");
+            return new DecisionContext(NetworkProtocol.D_PLAY_DRAWN_CARD, "Jogar a carta comprada?");
         }
         if (obs[183] != 0) {
-            return new DecisionContext(NetworkProtocol.D_CHOOSE_CARD, "Choose a card to play.");
+            return new DecisionContext(NetworkProtocol.D_CHOOSE_CARD, "Escolha uma carta para jogar.");
         }
         if (obs[182] != 0) {
-            return new DecisionContext(NetworkProtocol.D_SWAP_HANDS_TARGET,
-                    "SEVEN played - choose a player to swap hands with.");
+            return new DecisionContext(NetworkProtocol.D_SWAP_HANDS_TARGET, "SETE jogado - escolha um jogador para trocar as maos.");
         }
         if (obs[181] != 0) {
-            return new DecisionContext(NetworkProtocol.D_CHOOSE_COLOR,
-                    "Choose a color for your wild card.");
+            return new DecisionContext(NetworkProtocol.D_CHOOSE_COLOR, "Escolha uma cor para o seu coringa.");
         }
         if (obs[180] != 0) {
-            return new DecisionContext(NetworkProtocol.D_PLAY_IDENTICAL,
-                    "You have identical cards - play another?");
+            return new DecisionContext(NetworkProtocol.D_PLAY_IDENTICAL, "Voce tem cartas identicas - jogar outra?");
         }
 
-        return new DecisionContext(NetworkProtocol.D_UNKNOWN, "Choose an action.");
+        return new DecisionContext(NetworkProtocol.D_UNKNOWN, "Escolha uma acao.");
     }
 
     private static final class DecisionContext {
