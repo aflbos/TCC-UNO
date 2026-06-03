@@ -21,6 +21,22 @@
             </PendingDiffInfo>
           </value>
         </entry>
+        <entry key="$PROJECT_DIR$/Java/res/evaluation profiles/evaluation_heuristic_4p_100.properties">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/Java/res/evaluation profiles/evaluation_heuristic_4p_100.properties" />
+              <option name="updatedContent" value="# UNO evaluation profile - Heuristic agents, official rules, 4 players, 100 games&#10;startPort  = 5000&#10;numClients = 32&#10;&#10;# 100 seeds (same as evaluation_comprehensive.properties)&#10;seeds.standard = \&#10;  11111,22222,33333,44444,55555,66666,77777,88888,99999,12345,\&#10;  67890,54321,98765,42000,69000,69696,42024,12321,32123,31415,\&#10;  10000,20000,30000,40000,50000,60000,70000,80000,90000,10001,\&#10;  60707,89695,58525,10622,31543,35549,56321,19240,59274,36426,\&#10;  76598,49606,82368,22414,58797,72415,76191,81151,57500,43949,\&#10;  20036,42430,70001,27677,91403,75311,62714,94579,83572,71394,\&#10;  61335,87515,53758,34741,38213,93065,35096,10193,14895,15665,\&#10;  62982,44989,73902,76905,22001,68582,33507,83073,15217,55102,\&#10;  22107,84549,38930,61410,41207,73384,61175,10443,77781,17575,\&#10;  11175,69662,12213,98949,96055,50252,37809,26395,51435,77115&#10;&#10;suite.count = 1&#10;&#10;suite.1.name              = Heuristic_4P_100&#10;suite.1.type              = FIXED&#10;suite.1.seeds             = standard&#10;suite.1.aiPlayers         = 0&#10;suite.1.heuristicPlayers  = 4&#10;suite.1.randomPlayers     = 0&#10;suite.1.rules             = false,false,false,false,false,false,true,false&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/Java/res/evaluation profiles/evaluation_random_4p_100.properties">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/Java/res/evaluation profiles/evaluation_random_4p_100.properties" />
+              <option name="updatedContent" value="# UNO evaluation profile - Random agents, official rules, 4 players, 100 games&#10;startPort  = 5000&#10;numClients = 32&#10;&#10;# 100 seeds (same as evaluation_comprehensive.properties)&#10;seeds.standard = \&#10;  11111,22222,33333,44444,55555,66666,77777,88888,99999,12345,\&#10;  67890,54321,98765,42000,69000,69696,42024,12321,32123,31415,\&#10;  10000,20000,30000,40000,50000,60000,70000,80000,90000,10001,\&#10;  60707,89695,58525,10622,31543,35549,56321,19240,59274,36426,\&#10;  76598,49606,82368,22414,58797,72415,76191,81151,57500,43949,\&#10;  20036,42430,70001,27677,91403,75311,62714,94579,83572,71394,\&#10;  61335,87515,53758,34741,38213,93065,35096,10193,14895,15665,\&#10;  62982,44989,73902,76905,22001,68582,33507,83073,15217,55102,\&#10;  22107,84549,38930,61410,41207,73384,61175,10443,77781,17575,\&#10;  11175,69662,12213,98949,96055,50252,37809,26395,51435,77115&#10;&#10;suite.count = 1&#10;&#10;suite.1.name          = Random_4P_100&#10;suite.1.type          = FIXED&#10;suite.1.seeds         = standard&#10;suite.1.aiPlayers     = 0&#10;suite.1.randomPlayers = 4&#10;suite.1.rules         = false,false,false,false,false,false,true,false&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

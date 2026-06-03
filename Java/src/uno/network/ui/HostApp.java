@@ -40,6 +40,9 @@ public class HostApp {
         presets.put("official", new boolean[]{
                 false, false, false, false, false, false, true, false
         });
+        presets.put("house rules", new boolean[]{
+                true, false, true, false, false, true, false, true
+        });
         return java.util.Collections.unmodifiableMap(presets);
     }
 
@@ -265,7 +268,8 @@ public class HostApp {
                         printPresets();
                         continue;
                     }
-                    applyPreset(parts[1], rules);
+                    String presetName = line.substring(line.indexOf(' ') + 1).trim();
+                    applyPreset(presetName, rules);
                     break;
 
                 case "presets":
