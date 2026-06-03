@@ -4,6 +4,7 @@ import uno.game.event.GameEventListener;
 import uno.game.loggers.Logger;
 import uno.game.players.Player;
 import uno.game.players.PlayerAI;
+import uno.game.players.PlayerHerusitic;
 import uno.game.players.PlayerHuman;
 import uno.game.players.PlayerNetwork;
 import uno.game.players.PlayerRandom;
@@ -71,8 +72,9 @@ public class Simulation {
     private int[] playableCardIdsForNetwork = new int[0];
     private Logger logger = null;
 
-    public Simulation(int numHumanPlayers, int numAIPlayers, int numRandomPlayers, ConnectionAI ConnectionAI, boolean[] rules, String id, int seed) {
-        Player[] players = new Player[numHumanPlayers + numAIPlayers + numRandomPlayers];
+    // Updated Constructor adapting the Heuristic Player
+    public Simulation(int numHumanPlayers, int numAIPlayers, int numHeuristicPlayers, int numRandomPlayers, ConnectionAI ConnectionAI, boolean[] rules, String id, int seed) {
+        Player[] players = new Player[numHumanPlayers + numAIPlayers + numHeuristicPlayers + numRandomPlayers];
         this.drawDeck = new Deck();
         this.discardPile = new Deck();
         this.gameOver = false;
@@ -83,28 +85,41 @@ public class Simulation {
 
         drawDeck.shuffle(seed);
 
+        int idx = 0;
         for (int i = 0; i < numHumanPlayers; i++) {
-            players[i] = new PlayerHuman("H. Player" + (i + 1), this);
+            players[idx] = new PlayerHuman("H. Player " + (i + 1), this);
             for (int j = 0; j < 7; j++) {
-                players[i].addCardToHand(drawDeck.drawCard());
+                players[idx].addCardToHand(drawDeck.drawCard());
             }
-            players[i].sortCards();
+            players[idx].sortCards();
+            idx++;
         }
 
-        for (int i = numHumanPlayers; i < numHumanPlayers + numAIPlayers; i++) {
-            players[i] = new PlayerAI("AI. Player " + (i + 1), this, ConnectionAI);
+        for (int i = 0; i < numAIPlayers; i++) {
+            players[idx] = new PlayerAI("AI. Player " + (i + 1), this, ConnectionAI);
             for (int j = 0; j < 7; j++) {
-                players[i].addCardToHand(drawDeck.drawCard());
+                players[idx].addCardToHand(drawDeck.drawCard());
             }
-            players[i].sortCards();
+            players[idx].sortCards();
+            idx++;
         }
 
-        for (int i = numHumanPlayers + numAIPlayers; i < numHumanPlayers + numAIPlayers + numRandomPlayers; i++) {
-            players[i] = new PlayerRandom("R. Player " + (i + 1), this);
+        for (int i = 0; i < numHeuristicPlayers; i++) {
+            players[idx] = new PlayerHerusitic("Heu. Player " + (i + 1), this);
             for (int j = 0; j < 7; j++) {
-                players[i].addCardToHand(drawDeck.drawCard());
+                players[idx].addCardToHand(drawDeck.drawCard());
             }
-            players[i].sortCards();
+            players[idx].sortCards();
+            idx++;
+        }
+
+        for (int i = 0; i < numRandomPlayers; i++) {
+            players[idx] = new PlayerRandom("R. Player " + (i + 1), this);
+            for (int j = 0; j < 7; j++) {
+                players[idx].addCardToHand(drawDeck.drawCard());
+            }
+            players[idx].sortCards();
+            idx++;
         }
 
         this.players = players;
@@ -189,7 +204,6 @@ public class Simulation {
         ArrayList<Card> playableCards;
 
         previousPlayerHandObservation = new double[54];
-
         Arrays.fill(previousPlayerHandObservation, -1);
 
         Player currentPlayer = getCurrentPlayer();
@@ -201,11 +215,11 @@ public class Simulation {
         Card topCard = discardPile.peekTopCard();
 
         if (topCard.getValue() == Value.DRAW_FOUR && stackingAmount != 0) {
-            if (RULE_BLUFFING) {
+            if (RULE_BLUFFING && turnCounter > 0) {
                 boolean end = handleBluffChallenge();
                 if (end) {
                     fire(listener -> listener.onTurnEnd(currentPlayer));
-                    finishRound();
+                    finishRound(currentPlayer);
                     return;
                 }
             }
@@ -224,14 +238,14 @@ public class Simulation {
                     stackingAmount = 0;
                     if (!RULE_DRAW_AND_PLAY) {
                         fire(listener -> listener.onTurnEnd(getCurrentPlayer()));
-                        finishRound();
+                        finishRound(currentPlayer);
                         return;
                     }
                 } else {
                     boolean end = handleStackChoice(playableCards);
                     if (end) {
                         fire(listener -> listener.onTurnEnd(getCurrentPlayer()));
-                        finishRound();
+                        finishRound(currentPlayer);
                         return;
                     }
                 }
@@ -240,7 +254,7 @@ public class Simulation {
                 stackingAmount = 0;
                 if (!RULE_DRAW_AND_PLAY) {
                     fire(listener -> listener.onTurnEnd(getCurrentPlayer()));
-                    finishRound();
+                    finishRound(currentPlayer);
                     return;
                 }
             }
@@ -275,11 +289,11 @@ public class Simulation {
 
         fire(listener -> listener.onTurnEnd(getCurrentPlayer()));
 
-        finishRound();
+        finishRound(currentPlayer);
     }
 
-    private void finishRound() {
-        if (debug && turnCounter%100 == 0) {
+    private void finishRound(Player player) {
+        if (debug && turnCounter % 100 == 0) {
             fire(listener -> listener.onDebugTick(id, turnCounter));
         }
 
@@ -290,21 +304,21 @@ public class Simulation {
         setDecisionMask(generateDecisionMask(new ArrayList<>()));
         copyPreviousHandIntoObs();
 
-        if (getCurrentPlayer().getCards().isEmpty()) {
+        if (player.getCards().isEmpty()) {
             gameOver = true;
-            winner = getCurrentPlayer();
+            winner = player;
 
             fire(listener -> listener.onGameOver(winner));
-            for (Player player : players) {
-                player.onGameOver(winner);
+            for (Player p : players) {
+                p.onGameOver(winner);
             }
         } else if (turnCounter >= 3000) {
             gameOver = true;
             winner = null;
 
             fire(listener -> listener.onGameOver(null));
-            for (Player player : players) {
-                player.onGameOver(null);
+            for (Player p : players) {
+                p.onGameOver(null);
             }
         }
     }
@@ -326,8 +340,10 @@ public class Simulation {
             Card chosenCard = chooseCardToPlay(playableCards);
             getCurrentPlayer().discardCard(chosenCard);
             playCard(chosenCard);
-        } else {
+        } else if (input == 1) {
             fire(listener -> listener.onPassedTurn(getCurrentPlayer()));
+        } else {
+            throw new RuntimeException("Invalid input");
         }
     }
 
@@ -348,8 +364,10 @@ public class Simulation {
             Card chosenCard = chooseCardToPlay(playableCards);
             getCurrentPlayer().discardCard(chosenCard);
             playCard(chosenCard);
-        } else {
+        } else if (input == 1) {
             handleDrawCardsChoice();
+        } else {
+            throw new RuntimeException("Invalid input");
         }
     }
 
@@ -370,9 +388,11 @@ public class Simulation {
             Card chosenCard = chooseCardToPlay(playableCards);
             getCurrentPlayer().discardCard(chosenCard);
             playCard(chosenCard);
-        } else {
+        } else if (input == 1){
             drawCards(getCurrentPlayer(), stackingAmount);
             stackingAmount = 0;
+        } else {
+            throw new RuntimeException("Invalid input");
         }
         return !RULE_DRAW_AND_PLAY;
     }
@@ -390,19 +410,20 @@ public class Simulation {
 
         int input = getCurrentPlayer().getInput();
         input = decodeInput(input, 68);
-        if (input == 1) {
+        if (input == 0) {
             if (previousPlayerBluffed) {
                 previousPlayerHandObservation = generatePreviousPlayerHandObservation();
                 drawCards(getPreviousPlayer(), 4);
                 stackingAmount -= 4;
             } else {
-                drawCards(getCurrentPlayer(), stackingAmount + 6);
+                drawCards(getCurrentPlayer(), stackingAmount + 2);
                 stackingAmount = 0;
                 if (!RULE_DRAW_AND_PLAY) {
-                    nextPlayer();
                     return true;
                 }
             }
+        } else if (input != 1) {
+            throw new RuntimeException("Invalid input");
         }
 
         return false;
@@ -434,6 +455,8 @@ public class Simulation {
                 Card chosenCard = chooseCardToPlay(identicalCards);
                 getCurrentPlayer().discardCard(chosenCard);
                 playCard(chosenCard);
+            } else if  (input != 1) {
+                throw new RuntimeException("Invalid input");
             }
         }
     }
@@ -464,14 +487,17 @@ public class Simulation {
                 decisionMask[playableCard.getId()] = 1;
             }
         }
+
         setValidInputs(new int[playableCards.size()]);
         for (int i = 0; i < playableCards.size(); i++) {
-            validInputs[i] = i;
+            validInputs[i] = i + 1;
         }
+
         playableCardIdsForNetwork = new int[playableCards.size()];
         for (int i = 0; i < playableCards.size(); i++) {
             playableCardIdsForNetwork[i] = playableCards.get(i).getId();
         }
+
         int input = getCurrentPlayer().getInput();
         if (ai) {
             int cardIndex = -1;
@@ -485,10 +511,16 @@ public class Simulation {
             }
             return playableCards.get(cardIndex);
         }
-        return playableCards.get(input);
+
+        return playableCards.get(input - 1);
     }
 
     private void handleDrawCardsChoice() {
+        if (!canDraw()) {
+            fire(listener -> listener.onDeckEmpty());
+            return; // Abort drawing if no cards exist
+        }
+
         Card drawnCard = drawDeck.drawCard();
 
         if (RULE_DRAW_TO_MATCH) {
@@ -527,8 +559,10 @@ public class Simulation {
                 if (input == 0) {
                     getCurrentPlayer().discardCard(drawnCard);
                     playCard(drawnCard);
-                } else {
+                } else if (input == 1) {
                     fire(listener -> listener.onPassedTurn(getCurrentPlayer()));
+                } else {
+                    throw new RuntimeException("Invalid input.");
                 }
             }
         } else {
@@ -583,18 +617,25 @@ public class Simulation {
     private void playCard(Card card) {
         int colorChoice;
         Color chosenColor;
-        Card cardCopy = new Card(card.getId());
+        Color playedColor = card.getColor();
+        Value playedValue = card.getValue();
 
         if (RULE_SEVEN_ZERO) {
             switch (card.getValue()) {
                 case ZERO:
-                    ArrayList<Card> x = new ArrayList<>(getCurrentPlayer().getCards());
+                    ArrayList<Card> prevHand = new ArrayList<>(players[currentPlayerIndex].getCards());
+
+                    int idx = currentPlayerIndex;
 
                     for (int i = 0; i < players.length - 1; i++) {
-                        players[i] = players[i + 1];
+                        int next = Math.floorMod(idx + direction, players.length);
+                        ArrayList<Card> temp = new ArrayList<>(players[next].getCards());
+                        players[next].setCards(prevHand);
+                        prevHand = temp;
+                        idx = next;
                     }
 
-                    players[players.length - 1].setCards(x);
+                    players[currentPlayerIndex].setCards(prevHand);
 
                     break;
 
@@ -608,6 +649,9 @@ public class Simulation {
                     for (int i = 0; i < players.length; i++) {
                         decisionMask[58 + i] = 1; // Options to swap hands with each player
                     }
+
+                    decisionMask[58 + currentPlayerIndex] = 0; // Can't swap with yourself
+
                     setValidInputs(new int[players.length]);
                     for (int i = 0; i < validInputs.length; i++) {
                         validInputs[i] = i + 1;
@@ -644,6 +688,7 @@ public class Simulation {
 
             case DRAW_FOUR:
                 if (discardPile.peekTopCard().getValue() != Value.DRAW_FOUR) {
+                    previousPlayerBluffed = false;
                     for (Card c : getCurrentPlayer().getCards()) {
                         if (c.getColor() == discardPile.peekTopCard().getColor()) {
                             previousPlayerBluffed = true;
@@ -669,7 +714,7 @@ public class Simulation {
         if (RULE_PLAY_IDENTICAL) {
             ArrayList<Card> handSnapshot = new ArrayList<>(getCurrentPlayer().getCards());
             for (Card c : handSnapshot) {
-                if (c.getColor() == cardCopy.getColor() && c.getValue() == cardCopy.getValue()) {
+                if (c.getColor() == playedColor && c.getValue() == playedValue) {
                     handlePlayIdenticalCard(c);
                 }
             }
@@ -709,7 +754,7 @@ public class Simulation {
 
         discardPile.placeCard(topCard);
 
-        drawDeck.shuffle(getSeed());
+        drawDeck.shuffle(getSeed() + turnCounter);
     }
 
     private void nextPlayer() {
@@ -736,19 +781,9 @@ public class Simulation {
     }
 
     private double[] generateObservationVector() {
-        // Observation vector structure:
-        // 1. Index 0-53: game.players.Player's hand (0.5 if the player has a card, 1 if the player has multiple of the same card,
-        //    0 if the player doesn't have the card)
-        // 2. Index 54-107: In case the player has challenged a Draw Four, information about the previous player's hand
-        //    (0.5 if the player has a card, 1 if the player has multiple of the same card, 0 if the player doesn't have the card)
-        // 3. Index 108-161: Top card on discard pile (1 if the card is on top of the discard pile, 0 otherwise)
-        // 4. Index 162-171: Amount of cards in each opponent's hand (normalized to 0-1, -1 if player is not in the game)
-        // 5. Index 172-179: Flags for the rules (1 if the rule is active, 0 otherwise)
-        // 6. Index 180-188: Additional flags to indicate what decision the agent is making and in what situation
-        //    (e.g. whether the agent is choosing a color for a wild card, whether the agent is deciding to play a drawn card, etc.)
         double[] observationVector = new double[OBS_SIZE];
 
-        // 1. Index 0-53: game.players.Player's hand
+        // 1. Index 0-53: Player's hand
         for (Card card : getCurrentPlayer().getCards()) {
             observationVector[card.getId()] += 0.5;
             if (observationVector[card.getId()] > 1) {
@@ -756,20 +791,20 @@ public class Simulation {
             }
         }
 
-        // 2. Index 54-107: In case the player has challenged a Draw Four, information about the previous player's hand
-        // (set to 0 for now, can be updated based on the situation in the game outside of this method)
-
         // 3. Index 108-161: Top card on discard pile
         observationVector[discardPile.peekTopCard().getId() + 108] = 1;
 
+        // Cap the mapped opponents to a maximum of 10 so it doesn't bleed into indices 172+
+        int maxOpponentsToMap = Math.min(players.length, 10);
+
         // 4. Index 162-171: Amount of cards in each opponent's hand
-        for (int i = 0; i < players.length; i++) {
+        for (int i = 0; i < maxOpponentsToMap; i++) {
             int playerIndex = Math.floorMod(currentPlayerIndex + direction * (i + 1), players.length);
             observationVector[162 + i] = ((double) players[playerIndex].getCards().size()) / 20;
         }
 
-        // 4. Index 162-171: Set -1 for players that are not in the game (in case of less than 10 players)
-        for (int i = 162 + players.length; i < 172; i++) {
+        // 4. Index 162-171: Set -1 for players that are not in the game
+        for (int i = 162 + maxOpponentsToMap; i < 172; i++) {
             observationVector[i] = -1;
         }
 
@@ -782,29 +817,16 @@ public class Simulation {
             }
         }
 
-        // 6. Index 180-188: Additional flags (set to 0 for now, can be updated based on the situation in the game outside of this method)
-
         return observationVector;
     }
 
     private double[] generateDecisionMask(ArrayList<Card> playableCards) {
-        // Decision mask structure:
-        // 1. Index 0-53: Play a card from the player's hand (1 if the player can play the card, 0 otherwise)
-        // 2. Index 54-57: Choose a color for a wild card (1 if the player can choose the color, 0 otherwise)
-        // 3. Index 58-67: Choose a player to swap hands with for a Seven card (1 if the player can choose the player, 0 otherwise)
-        // 4. Index 68-69: Universal options for binary choices (e.g. whether to play a drawn card or not, whether to challenge a Draw Four or not, etc.) (1 if the option is available, 0 otherwise)
         double[] decisionMask = new double[70];
 
         // 1. Index 0-53: Play a card from hand
         for (Card card : playableCards) {
             decisionMask[card.getId()] = 1;
         }
-
-        // 2. Index 54-57: Choose a color for a wild card (set to 0 for now, can be updated based on the situation in the game outside of this method)
-
-        // 3. Index 58-67: Choose a player to swap hands with (set to 0 for now, can be updated based on the situation in the game outside of this method)
-
-        // 4. Index 68-69: Universal options for binary choices (set to 0 for now, can be updated based on the situation in the game outside of this method)
 
         return decisionMask;
     }
@@ -847,7 +869,6 @@ public class Simulation {
         this.playableCardIdsForNetwork = new int[0];
     }
 
-    /** Only non-empty while the current prompt is "pick a card to play" (indices in {@link #getValidInputs()}). */
     public int[] getPlayableCardIdsForNetwork() {
         return playableCardIdsForNetwork == null
                 ? new int[0] : Arrays.copyOf(playableCardIdsForNetwork, playableCardIdsForNetwork.length);
@@ -920,20 +941,30 @@ public class Simulation {
         return players[nextIndex].getCards().size();
     }
 
-    public double computeShapedReward(Player player, int previousOwnHandSize, int previousNextOpponentHandSize) {
-        int currentOwnHandSize = getHandSize(player);
-        int currentNextOpponentHandSize = getNextOpponentHandSize(player);
+    public double computeShapedReward(Player player) {
+        int playerHandSize = getHandSize(player);
 
-        double maxHandSize = 20.0;
-        double prevProximity = 1.0 - Math.min(previousOwnHandSize, (int) maxHandSize) / maxHandSize;
-        double currProximity = 1.0 - Math.min(currentOwnHandSize, (int) maxHandSize) / maxHandSize;
-        double proximityDelta = currProximity - prevProximity;
+        int smallestHand = playerHandSize;
 
-        double proximityReward = (0.2 * proximityDelta) + (0.02 * currProximity);
-        double opponentPressureDelta = 0.005 * (currentNextOpponentHandSize - previousNextOpponentHandSize);
-        double stepCost = -0.0001;
+        for (Player p : players) {
+            if (p.getCards().size() < smallestHand) {
+                smallestHand = p.getCards().size();
+            }
+        }
 
-        return proximityReward + opponentPressureDelta + stepCost;
+        double handReward = (playerHandSize - 10) * -0.01;
+
+        double opponentPressureReward;
+
+        if (smallestHand == playerHandSize) {
+            opponentPressureReward = 0.1;
+        } else {
+            opponentPressureReward = (playerHandSize - smallestHand) * -0.1;
+        }
+
+        double stepCost = -0.005;
+
+        return handReward + opponentPressureReward + stepCost;
     }
 
     public int getStackingAmount() {
@@ -965,7 +996,6 @@ public class Simulation {
             event.accept(logger);
         }
 
-
         for (Player player : players) {
             if (player instanceof GameEventListener) {
                 event.accept((GameEventListener) player);
@@ -973,4 +1003,3 @@ public class Simulation {
         }
     }
 }
-

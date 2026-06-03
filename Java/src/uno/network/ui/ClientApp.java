@@ -13,27 +13,28 @@ public class ClientApp {
     private static final int MIN_PORT = 1024;
     private static final int MAX_PORT = 65535;
 
-    private static final String RESET = ConsoleStyle.RESET;
-    private static final String BOLD = ConsoleStyle.BOLD;
-    private static final String CYAN = ConsoleStyle.CYAN;
-    private static final String GREEN = ConsoleStyle.GREEN;
-    private static final String YELLOW = ConsoleStyle.YELLOW;
-    private static final String RED = ConsoleStyle.RED;
-    private static final String BLUE = ConsoleStyle.BLUE;
-    private static final String MAGENTA = ConsoleStyle.MAGENTA;
+    private static String RESET = ConsoleStyle.RESET;
+    private static String BOLD = ConsoleStyle.BOLD;
+    private static String CYAN = ConsoleStyle.CYAN;
+    private static String GREEN = ConsoleStyle.GREEN;
+    private static String YELLOW = ConsoleStyle.YELLOW;
+    private static String RED = ConsoleStyle.RED;
+    private static String BLUE = ConsoleStyle.BLUE;
+    private static String MAGENTA = ConsoleStyle.MAGENTA;
     private static final Object CONSOLE_LOCK = new Object();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        refreshColors();
         printWelcome();
         runClient(scanner);
     }
 
     private static void printWelcome() {
-        System.out.println("\n" + BOLD + CYAN + "╔══════════════════════════════════╗" + RESET);
-        System.out.println(BOLD + CYAN +        "║   UNO - Jogo de Cartas em Rede   ║" + RESET);
-        System.out.println(BOLD + CYAN +        "║      Cliente do Jogador 1.0      ║" + RESET);
-        System.out.println(BOLD + CYAN +        "╚══════════════════════════════════╝" + RESET + "\n");
+        System.out.println("\n" + BOLD + CYAN + "==========================================================" + RESET);
+        System.out.println(BOLD + CYAN +        "|               UNO - Jogo de Cartas em Rede             |" + RESET);
+        System.out.println(BOLD + CYAN +        "|                        Cliente 1.0                     |" + RESET);
+        System.out.println(BOLD + CYAN +        "==========================================================" + RESET + "\n");
     }
 
     private static void runClient(Scanner scanner) {
@@ -59,10 +60,15 @@ public class ClientApp {
                     continue;
 
                 case "show":
-                    System.out.println(CYAN + "\nConfiguracoes atuais:" + RESET);
-                    System.out.println("  nome = " + (name.isEmpty() ? RED + "(nao definido)" + RESET : GREEN + name + RESET));
-                    System.out.println("  host = " + GREEN + host + RESET);
-                    System.out.println("  porta = " + GREEN + port + RESET + "\n");
+                    System.out.println(BOLD + CYAN + "\n=== Configuracoes Atuais ===" + RESET);
+                    System.out.println("  " + ConsoleStyle.padRight("Nome", 10) + ": " + (name.isEmpty() ? RED + "(nao definido)" + RESET : GREEN + name + RESET));
+                    System.out.println("  " + ConsoleStyle.padRight("Host", 10) + ": " + GREEN + host + RESET);
+                    System.out.println("  " + ConsoleStyle.padRight("Porta", 10) + ": " + GREEN + port + RESET + "\n");
+                    continue;
+
+                case "color":
+                case "colors":
+                    handleColorCommand(parts);
                     continue;
 
                 case "setname":
@@ -76,7 +82,7 @@ public class ClientApp {
                     if (name.isEmpty()) {
                         System.out.println(RED + "O nome nao pode ser vazio." + RESET);
                     } else {
-                        System.out.println(GREEN + "✓ Nome definido como: " + name + RESET);
+                        System.out.println(GREEN + "[OK] Nome definido como: " + name + RESET);
                     }
                     continue;
 
@@ -141,9 +147,9 @@ public class ClientApp {
                         System.out.println(CYAN + "Conectando em " + host + ":" + port + "..." + RESET);
                         client.connect(host, port);
                         client.startReadLoop();
-                        System.out.println(GREEN + "✓ Conectado! Aguardando no lobby..." + RESET);
+                        System.out.println(GREEN + "[OK] Conectado! Aguardando no lobby..." + RESET);
                     } catch (IOException e) {
-                        System.err.println(RED + "✗ Falha na conexao: " + e.getMessage() + RESET);
+                        System.err.println(RED + "[ERRO] Falha na conexao: " + e.getMessage() + RESET);
                         continue;
                     }
 
@@ -165,15 +171,16 @@ public class ClientApp {
     }
 
     private static void printConnectHelp() {
-        System.out.println(BOLD + CYAN + "\n═══ Menu de Conexao ═══" + RESET);
-        System.out.println(GREEN + "  help | h" + RESET + "              Mostrar comandos");
-        System.out.println(GREEN + "  show" + RESET + "                  Mostrar nome/host/porta atuais");
-        System.out.println(GREEN + "  setname <name>" + RESET + "        Definir nome do jogador");
-        System.out.println(GREEN + "  prompt" + RESET + "                Perguntas interativas para todos os campos");
-        System.out.println(GREEN + "  connect | c" + RESET + "           Conectar usando as configuracoes atuais");
-        System.out.println(GREEN + "  connect <ip>:<porta>" + RESET + "   Definir destino e conectar imediatamente");
-        System.out.println(GREEN + "  clear" + RESET + "                 Limpar tela");
-        System.out.println(GREEN + "  quit | q" + RESET + "              Sair da aplicacao");
+        System.out.println(BOLD + CYAN + "\n=== Menu de Conexao ===" + RESET);
+        System.out.println(GREEN + ConsoleStyle.padRight("  help | h", 28) + RESET + "Mostrar comandos");
+        System.out.println(GREEN + ConsoleStyle.padRight("  show", 28) + RESET + "Mostrar configuracoes atuais");
+        System.out.println(GREEN + ConsoleStyle.padRight("  setname <nome>", 28) + RESET + "Definir nome do jogador");
+        System.out.println(GREEN + ConsoleStyle.padRight("  prompt", 28) + RESET + "Configurar de forma interativa");
+        System.out.println(GREEN + ConsoleStyle.padRight("  connect | c", 28) + RESET + "Conectar usando configuracoes atuais");
+        System.out.println(GREEN + ConsoleStyle.padRight("  connect <ip>:<porta>", 28) + RESET + "Conectar imediatamente");
+        System.out.println(GREEN + ConsoleStyle.padRight("  clear", 28) + RESET + "Limpar tela");
+        System.out.println(GREEN + ConsoleStyle.padRight("  color [auto|on|off]", 28) + RESET + "Ajustar cores do console");
+        System.out.println(GREEN + ConsoleStyle.padRight("  quit | q", 28) + RESET + "Sair da aplicacao");
         System.out.println();
     }
 
@@ -193,7 +200,8 @@ public class ClientApp {
                 continue;
             }
 
-            String cmd = line.trim().toLowerCase();
+            String[] parts = line.split("\\s+");
+            String cmd = parts[0].trim().toLowerCase();
             switch (cmd) {
                 case "help":
                     printLobbyHelp();
@@ -207,6 +215,10 @@ public class ClientApp {
                 case "menu":
                 case "leave":
                     listener.requestDisconnect("Desconectado e retornando ao menu.");
+                    break;
+                case "color":
+                case "colors":
+                    handleColorCommand(parts);
                     break;
                 default:
                     System.out.println(YELLOW + "Comando de lobby desconhecido. Digite 'help'." + RESET);
@@ -235,11 +247,10 @@ public class ClientApp {
 
     private static void printLobbyHelp() {
         System.out.println(BOLD + CYAN + "\n=== Comandos do Lobby ===" + RESET);
-        System.out.println(GREEN + "  help" + RESET + "          Mostrar esta lista de comandos");
-        System.out.println(GREEN + "  players" + RESET + "       Mostrar resumo mais recente dos jogadores");
-        System.out.println(GREEN + "  lobby" + RESET + "         Alias para players");
-        System.out.println(GREEN + "  status" + RESET + "        Alias para players");
-        System.out.println(GREEN + "  disconnect" + RESET + "    Sair do servidor e voltar ao menu de conexao");
+        System.out.println(GREEN + ConsoleStyle.padRight("  help", 20) + RESET + "Mostrar esta lista de comandos");
+        System.out.println(GREEN + ConsoleStyle.padRight("  players | lobby", 20) + RESET + "Mostrar resumo mais recente dos jogadores");
+        System.out.println(GREEN + ConsoleStyle.padRight("  disconnect", 20) + RESET + "Sair do servidor e voltar ao menu de conexao");
+        System.out.println(GREEN + ConsoleStyle.padRight("  color [auto|on|off]", 20) + RESET + "Ajustar cores do console");
         System.out.println();
     }
 
@@ -308,37 +319,47 @@ public class ClientApp {
                 return;
             }
 
-            System.out.println(CYAN + "[lobby]" + RESET);
+            System.out.println(BOLD + CYAN + "\n=== Atualizacao do Lobby ===" + RESET);
 
             for (String entry : summary.split(",")) {
                 String[] parts = entry.split(":");
                 if (parts.length >= 2) {
-                    System.out.println("  - " + GREEN + parts[0] + RESET + " [" + parts[1] + "]");
+                    System.out.println("  - " + GREEN + ConsoleStyle.padRight(parts[0], 20) + RESET + " [" + parts[1] + "]");
                 }
             }
+            System.out.println();
         }
 
         @Override
         public void onPlayers(String summary) {
             if (summary != null && !summary.isEmpty()) {
                 lastPlayersSummary = summary;
-                System.out.println(CYAN + "[jogadores] " + summary + RESET);
+                System.out.println("\n" + BOLD + CYAN + "=== Resumo dos Jogadores ===" + RESET);
+                for (String entry : summary.split(",")) {
+                    System.out.println("  - " + entry.trim());
+                }
+                System.out.println();
             }
         }
 
         @Override
         public void onGameStart() {
-            System.out.println(GREEN + BOLD + "🎮 Partida iniciada!" + RESET);
+            System.out.println(GREEN + BOLD + "[JOGO] Partida iniciada!" + RESET);
         }
 
         @Override
         public void onState(String handDesc, String topCard, int[] validInputs, String decisionId, String prompt, int[] playableCardIds) {
             awaitingDecision = true;
             System.out.println();
-            System.out.println(BOLD + YELLOW + "┌─ Estado do Jogo ─┐" + RESET);
-            System.out.println(MAGENTA + "Carta do topo: " + RESET + BOLD + topCard + RESET);
+            System.out.println(BOLD + YELLOW + "==========================================================" + RESET);
+            System.out.println(BOLD + YELLOW + "                      ESTADO DO JOGO                      " + RESET);
+            System.out.println(BOLD + YELLOW + "==========================================================" + RESET);
+            System.out.println(" " + MAGENTA + "> Carta do topo:" + RESET + " " + BOLD + topCard + RESET);
+            System.out.println();
             printHand(handDesc);
-            System.out.println(CYAN + prompt + RESET);
+            System.out.println();
+            System.out.println(" " + CYAN + "> " + prompt + RESET);
+            System.out.println();
             printDecisionLabels(handDesc, validInputs, playableCardIds, decisionId, prompt);
 
             try {
@@ -358,8 +379,8 @@ public class ClientApp {
                             continue;
 
                         case "state":
-                            System.out.println(MAGENTA + "Carta do topo: " + RESET + BOLD + topCard + RESET);
-                            System.out.println(CYAN + prompt + RESET);
+                            System.out.println(" " + MAGENTA + "> Carta do topo:" + RESET + " " + BOLD + topCard + RESET);
+                            System.out.println(" " + CYAN + "> " + prompt + RESET);
                             printDecisionLabels(handDesc, validInputs, playableCardIds, decisionId, prompt);
                             continue;
 
@@ -373,6 +394,11 @@ public class ClientApp {
 
                         case "actions":
                             printDecisionLabels(handDesc, validInputs, playableCardIds, decisionId, prompt);
+                            continue;
+
+                        case "color":
+                        case "colors":
+                            handleColorCommand(parts);
                             continue;
 
                         case "disconnect":
@@ -408,12 +434,19 @@ public class ClientApp {
 
         @Override
         public void onGameOver(String winnerName) {
+            System.out.println();
+            System.out.println(BOLD + YELLOW + "==========================================================" + RESET);
+            System.out.println(BOLD + YELLOW + "                       FIM DE JOGO                        " + RESET);
+            System.out.println(BOLD + YELLOW + "----------------------------------------------------------" + RESET);
+
             if (NetworkProtocol.R_MATCH_STOPPED_BY_HOST.equals(winnerName)) {
-                System.out.println(BOLD + YELLOW + "⚠ Partida encerrada pelo host." + RESET);
+                System.out.println(BOLD + YELLOW + "| " + RED + ConsoleStyle.padRight("Partida encerrada pelo host.", 54) + YELLOW + " |" + RESET);
             } else {
-                System.out.println(BOLD + GREEN + "✓ Fim de jogo. Vencedor: " + winnerName + RESET);
+                System.out.println(BOLD + YELLOW + "| " + GREEN + ConsoleStyle.padRight("Vencedor: " + winnerName, 54) + YELLOW + " |" + RESET);
             }
-            System.out.println(CYAN + "Permanecendo conectado no lobby. Aguardando a proxima partida..." + RESET);
+
+            System.out.println(BOLD + YELLOW + "==========================================================" + RESET);
+            System.out.println(CYAN + " Retornando ao lobby. Aguardando proxima partida..." + RESET + "\n");
         }
 
         @Override
@@ -445,7 +478,11 @@ public class ClientApp {
             if (lastPlayersSummary == null || lastPlayersSummary.isEmpty()) {
                 System.out.println(YELLOW + "Jogadores: (sem atualizacao ainda)" + RESET);
             } else {
-                System.out.println(CYAN + "Jogadores: " + lastPlayersSummary + RESET);
+                System.out.println(BOLD + CYAN + "\n=== Resumo dos Jogadores ===" + RESET);
+                for (String entry : lastPlayersSummary.split(",")) {
+                    System.out.println("  - " + entry.trim());
+                }
+                System.out.println();
             }
         }
 
@@ -458,42 +495,52 @@ public class ClientApp {
 
         private static void printHand(String handDesc) {
             if (handDesc == null || handDesc.isEmpty()) {
-                System.out.println(YELLOW + "Mao: (vazia)" + RESET);
+                System.out.println(" " + YELLOW + "> Sua mao:" + RESET + " (vazia)");
                 return;
             }
 
-            System.out.println(YELLOW + "Mao:" + RESET);
+            System.out.println(" " + YELLOW + "> Sua mao:" + RESET);
 
             String[] cards = handDesc.split(",");
+            StringBuilder sb = new StringBuilder();
 
             for (int i = 0; i < cards.length; i++) {
                 String[] fields = cards[i].split(":", 2);
                 String card = fields.length > 1 ? fields[1] : cards[i];
-                System.out.println("  " + GREEN + i + RESET + ") " + card);
+
+                String entry = "   - " + card;
+                sb.append(ConsoleStyle.padRight(entry, 25));
+
+                if (i % 3 == 2 || i == cards.length - 1) {
+                    System.out.println(sb.toString());
+                    sb.setLength(0);
+                }
             }
         }
 
         private static void printPlayerHelp() {
-            System.out.println(BOLD + CYAN + "\n═══ Comandos Disponiveis ═══" + RESET);
-            System.out.println(GREEN + "  help" + RESET + "                Mostrar lista de comandos");
-            System.out.println(GREEN + "  state" + RESET + "               Reimprimir carta do topo e prompt");
-            System.out.println(GREEN + "  hand" + RESET + "                Reimprimir sua mao");
-            System.out.println(GREEN + "  players" + RESET + "             Mostrar resumo dos jogadores");
-            System.out.println(GREEN + "  actions" + RESET + "             Mostrar opcoes rotuladas");
-            System.out.println(GREEN + "  choose <action-id>" + RESET + "  Enviar uma acao");
-            System.out.println(GREEN + "  <number>" + RESET + "            Atalho para choose <number>");
-            System.out.println(GREEN + "  disconnect" + RESET + "          Sair e voltar ao menu");
+            System.out.println(BOLD + CYAN + "\n=== Comandos Durante a Partida ===" + RESET);
+            System.out.println(GREEN + ConsoleStyle.padRight("  help", 25) + RESET + "Mostrar lista de comandos");
+            System.out.println(GREEN + ConsoleStyle.padRight("  state", 25) + RESET + "Reimprimir estado do jogo (carta e opcoes)");
+            System.out.println(GREEN + ConsoleStyle.padRight("  hand", 25) + RESET + "Reimprimir sua mao");
+            System.out.println(GREEN + ConsoleStyle.padRight("  players", 25) + RESET + "Mostrar resumo dos jogadores");
+            System.out.println(GREEN + ConsoleStyle.padRight("  actions", 25) + RESET + "Mostrar opcoes rotuladas");
+            System.out.println(GREEN + ConsoleStyle.padRight("  choose <id>", 25) + RESET + "Enviar uma acao (ex: choose 1)");
+            System.out.println(GREEN + ConsoleStyle.padRight("  <numero>", 25) + RESET + "Atalho direto para enviar a acao");
+            System.out.println(GREEN + ConsoleStyle.padRight("  color [auto|on|off]", 25) + RESET + "Ajustar cores do console");
+            System.out.println(GREEN + ConsoleStyle.padRight("  disconnect", 25) + RESET + "Sair da partida e voltar ao menu");
             System.out.println();
         }
 
         private static void printDecisionLabels(String handDesc, int[] validInputs, int[] playableCardIds, String decisionId, String promptText) {
             List<CardEntry> cards = parseHand(handDesc);
-            System.out.println(BOLD + CYAN + "Opcoes:" + RESET);
+            System.out.println(" " + BOLD + CYAN + "> Opcoes de Acao:" + RESET);
 
             for (int action : validInputs) {
                 String description = describeAction(action, cards, playableCardIds, decisionId, promptText);
-                System.out.println("  " + BOLD + GREEN + action + RESET + " => " + description);
+                System.out.println("    " + BOLD + GREEN + "[" + action + "]" + RESET + " " + description);
             }
+            System.out.println();
         }
 
         private static String describeAction(int action, List<CardEntry> cards, int[] playableCardIds, String decisionId, String promptText) {
@@ -564,18 +611,19 @@ public class ClientApp {
         }
 
         private static String describePlayableCardIndex(int action, List<CardEntry> cards, int[] playableCardIds) {
-            if (action < 0 || action >= playableCardIds.length) {
+            int idx = action - 1;
+            if (idx < 0 || idx >= playableCardIds.length) {
                 return null;
             }
 
-            int cardId = playableCardIds[action];
+            int cardId = playableCardIds[idx];
             String cardLabel = findCardLabelById(cards, cardId);
 
             if (cardLabel != null) {
-                return "Jogar carta #" + GREEN + action + RESET + " (" + cardLabel + ")";
+                return "Jogar carta " + BOLD + MAGENTA + cardLabel + RESET;
             }
 
-            return "Jogar carta #" + GREEN + action + RESET;
+            return "Jogar carta";
         }
 
         private static String describePlayableCardFallback(int action, List<CardEntry> cards, int[] playableCardIds) {
@@ -583,7 +631,7 @@ public class ClientApp {
                 if (playableCardIds[i] != action) continue;
 
                 if (i >= 0 && i < cards.size()) {
-                    return "Jogar carta #" + GREEN + i + RESET + " (" + cards.get(i).label + ")";
+                    return "Jogar carta " + BOLD + MAGENTA + cards.get(i).label + RESET;
                 }
 
                 return "Jogar carta";
@@ -592,7 +640,7 @@ public class ClientApp {
             for (int i = 0; i < cards.size(); i++) {
                 CardEntry card = cards.get(i);
                 if (card.cardId == action) {
-                    return "Jogar carta #" + GREEN + i + RESET + " (" + card.label + ")";
+                    return "Jogar carta " + BOLD + MAGENTA + card.label + RESET;
                 }
             }
 
@@ -668,5 +716,44 @@ public class ClientApp {
                 this.label = label;
             }
         }
+    }
+
+    private static void handleColorCommand(String[] parts) {
+        if (parts.length < 2) {
+            printColorStatus();
+            System.out.println("  Uso: color <auto|on|off>");
+            return;
+        }
+
+        ConsoleStyle.ColorMode mode = ConsoleStyle.parseColorMode(parts[1]);
+        if (mode == null) {
+            System.out.println(RED + "Modo de cor invalido. Use auto, on ou off." + RESET);
+            return;
+        }
+
+        ConsoleStyle.setColorMode(mode);
+        refreshColors();
+        printColorStatus();
+    }
+
+    private static void printColorStatus() {
+        String modeLabel = ConsoleStyle.getColorMode().name().toLowerCase();
+        String enabled = ConsoleStyle.isColorsEnabled() ? GREEN + "ON" + RESET : RED + "OFF" + RESET;
+        String support = ConsoleStyle.isAutoSupported() ? GREEN + "sim" + RESET : RED + "nao" + RESET;
+        System.out.println(BOLD + CYAN + "\n=== Cores do Console ===" + RESET);
+        System.out.println("  Modo atual : " + modeLabel);
+        System.out.println("  Ativo      : " + enabled);
+        System.out.println("  Auto detect: " + support + "\n");
+    }
+
+    private static void refreshColors() {
+        RESET = ConsoleStyle.RESET;
+        BOLD = ConsoleStyle.BOLD;
+        CYAN = ConsoleStyle.CYAN;
+        GREEN = ConsoleStyle.GREEN;
+        YELLOW = ConsoleStyle.YELLOW;
+        RED = ConsoleStyle.RED;
+        BLUE = ConsoleStyle.BLUE;
+        MAGENTA = ConsoleStyle.MAGENTA;
     }
 }

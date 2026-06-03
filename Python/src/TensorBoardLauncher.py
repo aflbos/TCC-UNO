@@ -1,6 +1,10 @@
 ﻿import tensorboard.program
+from pathlib import Path
 
-def launch_tensorboard(logdir="./models/MaskablePPO/uno/logs/tensorboard_data/", port=6006):
+DEFAULT_LOGDIR = str(Path(__file__).resolve().parents[1] / "training logs")
+
+
+def launch_tensorboard(logdir=DEFAULT_LOGDIR, port=6006):
     tb = tensorboard.program.TensorBoard()
     tb.configure(argv=[None, '--logdir', logdir, '--port', str(port)])
     url = tb.launch()

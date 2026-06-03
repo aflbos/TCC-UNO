@@ -16,11 +16,13 @@ class UnoEnv(gym.Env):
         self.debug = bool(debug)
         self._step_counter = 0
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self.sock.settimeout(connect_timeout)
+        self.sock = None
         last_exc = None
         for attempt in range(1, int(connect_retries) + 1):
+            if self.sock is None:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                self.sock.settimeout(connect_timeout)
             try:
                 if self.debug:
                     print(f"[env] connecting to {host}:{port} (attempt {attempt}/{connect_retries})")
@@ -31,6 +33,10 @@ class UnoEnv(gym.Env):
                 break
             except OSError as exc:
                 last_exc = exc
+                try:
+                    self.sock.close()
+                finally:
+                    self.sock = None
                 time.sleep(connect_delay)
         if last_exc is not None:
             raise last_exc

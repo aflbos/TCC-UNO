@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class Training {
 
-    private static final String DEFAULT_CONFIG = "res/training_official_4p_100.properties";
+    private static final String DEFAULT_CONFIG = "res/Profile.properties";
 
     public static void main(String[] args) {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
@@ -44,12 +44,12 @@ public class Training {
 
         List<TrainingPhase> phases = config.phases;
         int loopStart = config.loopStartPhase - 1;
-        
+
         for (int i = 0; i < loopStart; i++) {
             runPhase(phases.get(i), id, ConnectionAI);
             printCycleComplete(id, i + 1, phases.get(i));
         }
-        
+
         if (config.loopInfinite) {
             while (true) {
                 try {
@@ -81,11 +81,11 @@ public class Training {
 
     private static void runFixedPhase(TrainingPhase phase, String id, ConnectionAI ConnectionAI) {
         Random rng = new Random();
-        System.out.println(id + ". [FIXED] " + phase.games + " games - " + phase.aiPlayers + " AI, " + phase.randomPlayers + " random players.");
+        System.out.println(id + ". [FIXED] " + phase.games + " games - " + phase.aiPlayers + " AI, " + phase.heuristicPlayers + " Heuristic, " + phase.randomPlayers + " Random players.");
         displayRules(phase);
 
         for (int i = 0; i < phase.games; i++) {
-            runGame(phase.aiPlayers, phase.randomPlayers, phase.resolveRules(rng), id, ConnectionAI);
+            runGame(phase.aiPlayers, phase.heuristicPlayers, phase.randomPlayers, phase.resolveRules(rng), id, ConnectionAI);
         }
     }
 
@@ -97,7 +97,7 @@ public class Training {
 
         for (int i = 0; i < phase.games; i++) {
             int aiPlayers = rng.nextInt(range) + phase.aiPlayersMin;
-            runGame(aiPlayers, 0, phase.resolveRules(rng), id, ConnectionAI);
+            runGame(aiPlayers, 0, 0, phase.resolveRules(rng), id, ConnectionAI);
         }
     }
 
@@ -109,9 +109,14 @@ public class Training {
 
         for (int i = 0; i < phase.games; i++) {
             int aiPlayers = rng.nextInt(range) + phase.aiPlayersMin;
-            int maxRandom = 10 - aiPlayers;
-            int randomPlayers = maxRandom == 0 ? 1 : rng.nextInt(maxRandom) + 1;
-            runGame(aiPlayers, randomPlayers, phase.resolveRules(rng), id, ConnectionAI);
+            int maxOpponents = 10 - aiPlayers;
+
+            // Randomly pick opponents combining Heuristic and Random
+            int opponentsCount = maxOpponents == 0 ? 1 : rng.nextInt(maxOpponents) + 1;
+            int heuristicPlayers = rng.nextInt(opponentsCount + 1);
+            int randomPlayers = opponentsCount - heuristicPlayers;
+
+            runGame(aiPlayers, heuristicPlayers, randomPlayers, phase.resolveRules(rng), id, ConnectionAI);
         }
     }
 
@@ -123,15 +128,18 @@ public class Training {
         for (int k = 0; k < phase.iterations; k++) {
             for (int total = 2; total <= 10; total++) {
                 for (int ai = 1; ai < total; ai++) {
-                    runGame(ai, total - ai, phase.resolveRules(rng), id, ConnectionAI);
+                    for (int heuristic = 0; heuristic <= total - ai; heuristic++) {
+                        int random = total - ai - heuristic;
+                        runGame(ai, heuristic, random, phase.resolveRules(rng), id, ConnectionAI);
+                    }
                 }
                 System.out.println(id + ". All possible games with " + total + " players done.");
             }
         }
     }
 
-    private static void runGame(int aiPlayers, int randomPlayers, boolean[] rules, String id, ConnectionAI ConnectionAI) {
-        Simulation simulation = new Simulation(0, aiPlayers, randomPlayers, ConnectionAI, rules, id, -1);
+    private static void runGame(int aiPlayers, int heuristicPlayers, int randomPlayers, boolean[] rules, String id, ConnectionAI ConnectionAI) {
+        Simulation simulation = new Simulation(0, aiPlayers, heuristicPlayers, randomPlayers, ConnectionAI, rules, id, -1);
 
         while (!simulation.isGameOver()) {
             simulation.playTurn();

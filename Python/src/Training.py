@@ -27,8 +27,8 @@ def make_env(rank, host, start_port, connect_retries, connect_delay, connect_tim
             connect_timeout=connect_timeout,
             debug=env_debug,
         )
-        env = ActionMasker(env, lambda e: e.unwrapped.get_action_mask())
         env = Monitor(env)
+        env = ActionMasker(env, lambda e: e.unwrapped.get_action_mask())
         return env
     return _init
 
@@ -96,6 +96,98 @@ ALGO_SPECS = {
 }
 
 
+ALGO_PROFILES = {
+    "a2c": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {"n_steps": 128, "learning_rate": 7e-4, "ent_coef": 0.01, "gamma": 0.99},
+    },
+    "ppo": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {
+            "n_steps": 1024,
+            "batch_size": 4096,
+            "learning_rate": 5e-4,
+            "ent_coef": 0.05,
+            "gamma": 0.995,
+            "n_epochs": 4,
+        },
+    },
+    "dqn": {
+        "policy_kwargs": {"net_arch": [256, 256]},
+        "algo_kwargs": {
+            "buffer_size": 500_000,
+            "learning_starts": 50_000,
+            "train_freq": (4, "step"),
+            "gradient_steps": 1,
+            "target_update_interval": 10_000,
+            "batch_size": 1024,
+            "exploration_fraction": 0.2,
+            "exploration_final_eps": 0.05,
+        },
+    },
+    "ddpg": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "qf": [256, 256]}},
+        "algo_kwargs": {"learning_rate": 1e-3, "buffer_size": 1_000_000, "batch_size": 256, "gamma": 0.99, "tau": 0.005},
+    },
+    "td3": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "qf": [256, 256]}},
+        "algo_kwargs": {"learning_rate": 1e-3, "buffer_size": 1_000_000, "batch_size": 256, "gamma": 0.99, "tau": 0.005},
+    },
+    "sac": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "qf": [256, 256]}},
+        "algo_kwargs": {"learning_rate": 3e-4, "buffer_size": 1_000_000, "batch_size": 256, "gamma": 0.99, "tau": 0.005, "ent_coef": "auto"},
+    },
+    "maskableppo": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {
+            "n_steps": 1024,
+            "batch_size": 4096,
+            "learning_rate": 5e-4,
+            "ent_coef": 0.05,
+            "gamma": 0.995,
+            "n_epochs": 4,
+        },
+    },
+    "qrdqn": {
+        "policy_kwargs": {"net_arch": [256, 256]},
+        "algo_kwargs": {
+            "buffer_size": 500_000,
+            "learning_starts": 50_000,
+            "train_freq": (4, "step"),
+            "gradient_steps": 1,
+            "target_update_interval": 10_000,
+            "batch_size": 1024,
+            "exploration_fraction": 0.2,
+            "exploration_final_eps": 0.05,
+        },
+    },
+    "tqc": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "qf": [256, 256]}},
+        "algo_kwargs": {"learning_rate": 3e-4, "buffer_size": 1_000_000, "batch_size": 256, "gamma": 0.99, "tau": 0.005},
+    },
+    "trpo": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {"n_steps": 1024, "gamma": 0.995},
+    },
+    "ars": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {},
+    },
+    "recurrentppo": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+        "algo_kwargs": {"n_steps": 128, "batch_size": 512, "learning_rate": 5e-4, "ent_coef": 0.05, "gamma": 0.995, "n_epochs": 4},
+    },
+    "crossq": {
+        "policy_kwargs": {"net_arch": {"pi": [256, 256], "qf": [256, 256]}},
+        "algo_kwargs": {"learning_rate": 3e-4, "buffer_size": 1_000_000, "batch_size": 256, "gamma": 0.99, "tau": 0.005},
+    },
+}
+
+
+def get_profile(algo_name):
+    return ALGO_PROFILES.get(algo_name, {})
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="UNO training (SB3/sb3_contrib).")
     parser.add_argument("--algo", default="maskableppo", choices=sorted(ALGO_SPECS.keys()))
@@ -140,11 +232,32 @@ def algo_dir_name(algo_name):
 
 
 def build_policy_kwargs(algo_name):
+    profile = get_profile(algo_name)
+    if profile.get("policy_kwargs") is not None:
+        return profile["policy_kwargs"]
     if algo_name in {"dqn", "qrdqn"}:
-        return dict(net_arch=[512, 512])
+        return dict(net_arch=[256, 256])
     if algo_name in {"ddpg", "td3", "sac", "tqc"}:
-        return dict(net_arch=dict(pi=[512, 512], qf=[512, 512]))
-    return dict(net_arch=dict(pi=[512, 512], vf=[512, 512]))
+        return dict(net_arch=dict(pi=[256, 256], qf=[256, 256]))
+    return dict(net_arch=dict(pi=[256, 256], vf=[256, 256]))
+
+
+def build_algo_kwargs(algo_name):
+    profile = get_profile(algo_name)
+    if profile.get("algo_kwargs") is not None:
+        return profile["algo_kwargs"]
+    if algo_name in {"dqn", "qrdqn"}:
+        return {
+            "buffer_size": 500_000,
+            "learning_starts": 50_000,
+            "train_freq": (4, "step"),
+            "gradient_steps": 1,
+            "target_update_interval": 10_000,
+            "batch_size": 1024,
+            "exploration_fraction": 0.2,
+            "exploration_final_eps": 0.05,
+        }
+    return {}
 
 
 if __name__ == "__main__":
@@ -152,12 +265,16 @@ if __name__ == "__main__":
     args = parse_args()
     print(f"[startup] cuda_available={torch.cuda.is_available()}")
 
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
+        torch.set_float32_matmul_precision('high')
+
     python_dir = Path(__file__).resolve().parents[1]
     algo_dir = algo_dir_name(args.algo.lower())
     models_dir = python_dir / "models" / algo_dir / "uno" / "generated models"
-    logs_dir = models_dir / "logs"
+    logs_dir = python_dir / "training logs"
     file = "uno_ai_model"
-    board_dir = logs_dir / "tensorboard_data"
+    board_dir = logs_dir
     now = time.strftime("%Y-%m-%d_%H-%M-%S")
 
     os.makedirs(models_dir, exist_ok=True)
@@ -179,7 +296,8 @@ if __name__ == "__main__":
         [
             make_env(i, host, start_port, connect_retries, connect_delay, connect_timeout, env_debug)
             for i in range(num_cpu)
-        ]
+        ],
+        start_method="spawn"
     )
 
     algo_name = args.algo.lower()
@@ -201,17 +319,18 @@ if __name__ == "__main__":
             "policy_kwargs": policy_kwargs,
             "verbose": 1,
             "device": device,
-            "n_steps": 8192,
-            "batch_size": 2048,
-            "learning_rate": 3e-4,
+            "n_steps": 1024,
+            "batch_size": 4096,
+            "learning_rate": 5e-4,
             "ent_coef": 0.05,
             "gamma": 0.995,
-            "n_epochs": 10,
+            "n_epochs": 4,
         }
+        algo_kwargs.update(build_algo_kwargs(algo_name))
         model = algo_cls(**filter_kwargs(algo_cls, algo_kwargs))
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=10000,
+        save_freq=50000,
         save_path=str(models_dir / now),
         name_prefix=f"{file}_{now}_checkpoint"
     )
@@ -225,7 +344,7 @@ if __name__ == "__main__":
 
     callback_list = CallbackList(callback_list)
 
-    tb = board(str(board_dir), port=6006)
+    tb = board(str(board_dir), port=5642)
 
     print("Beginning training...")
     model.learn(

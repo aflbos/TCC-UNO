@@ -33,13 +33,10 @@ public class PlayerAI extends Player {
         }
 
         if (rewardBaselineInitialized) {
-            reward = simulation.computeShapedReward(this, previousOwnHandSize, previousNextOpponentHandSize);
+            reward = simulation.computeShapedReward(this);
         } else {
             rewardBaselineInitialized = true;
         }
-
-        previousOwnHandSize = simulation.getHandSize(this);
-        previousNextOpponentHandSize = simulation.getNextOpponentHandSize(this);
 
         while (true) {
             try {
@@ -69,12 +66,11 @@ public class PlayerAI extends Player {
         double reward = 0;
 
         if (rewardBaselineInitialized) {
-            reward += simulation.computeShapedReward(this, previousOwnHandSize, previousNextOpponentHandSize);
+            reward += simulation.computeShapedReward(this);
         }
 
-        if (winner == this) reward += 2.0;
-        else if (winner == null) reward -= 0.5;
-        else reward -= 2.0;
+        if (winner == this) reward += 10.0;
+        else reward -= 10.0;
 
         try {
             ConnectionAI.askAction(simulation.getObservationVector(), simulation.getDecisionMask(), reward, true);

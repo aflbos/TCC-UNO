@@ -17,6 +17,7 @@ public class EvaluationSuite {
     public final int[] seeds;
     public final RuleSpec[] ruleSpecs;
     public final int aiPlayers;
+    public final int heuristicPlayers;
     public final int randomPlayers;
 
     public static EvaluationSuite fromProperties(Properties props, int index, java.util.Map<String, int[]> seedGroups) {
@@ -34,7 +35,7 @@ public class EvaluationSuite {
                     "Unknown suite type '" + rawType + "' at " + prefix + "type. " +
                             "Valid types: EXHAUSTIVE, FIXED");
         }
-        
+
         String seedGroupName = require(props, prefix + "seeds").trim();
         int[] seeds = seedGroups.get(seedGroupName);
 
@@ -43,32 +44,34 @@ public class EvaluationSuite {
                     "Suite " + index + " references unknown seed group '" + seedGroupName +
                             "'. Define it as: seeds." + seedGroupName + " = ...");
         }
-        
+
         String rawRules = props.getProperty(prefix + "rules",
                 "false,false,false,false,false,false,false,false");
         RuleSpec[] ruleSpecs = RuleSpec.parseArray(rawRules, prefix + "rules", 8);
-        
-        int aiPlayers     = intProp(props, prefix + "aiPlayers",     0);
-        int randomPlayers = intProp(props, prefix + "randomPlayers", 0);
 
-        if (type == Type.FIXED && aiPlayers + randomPlayers < 2) {
+        int aiPlayers        = intProp(props, prefix + "aiPlayers",     0);
+        int heuristicPlayers = intProp(props, prefix + "heuristicPlayers", 0);
+        int randomPlayers    = intProp(props, prefix + "randomPlayers", 0);
+
+        if (type == Type.FIXED && aiPlayers + heuristicPlayers + randomPlayers < 2) {
             throw new IllegalArgumentException(
-                    "Suite " + index + " (FIXED) must have aiPlayers + randomPlayers >= 2.");
+                    "Suite " + index + " (FIXED) must have total players >= 2.");
         }
 
-        return new EvaluationSuite(name, type, seeds, ruleSpecs, aiPlayers, randomPlayers);
+        return new EvaluationSuite(name, type, seeds, ruleSpecs, aiPlayers, heuristicPlayers, randomPlayers);
     }
 
     public boolean[] resolveRules(Random rng) {
         return RuleSpec.resolveAll(ruleSpecs, rng);
     }
 
-    private EvaluationSuite(String name, Type type, int[] seeds, RuleSpec[] ruleSpecs, int aiPlayers, int randomPlayers) {
+    private EvaluationSuite(String name, Type type, int[] seeds, RuleSpec[] ruleSpecs, int aiPlayers, int heuristicPlayers, int randomPlayers) {
         this.name = name;
         this.type = type;
         this.seeds = seeds;
         this.ruleSpecs = ruleSpecs;
         this.aiPlayers = aiPlayers;
+        this.heuristicPlayers = heuristicPlayers;
         this.randomPlayers = randomPlayers;
     }
 
@@ -94,6 +97,7 @@ public class EvaluationSuite {
     public String toString() {
         return "ai.evaluation.EvaluationSuite{name='" + name + "', type=" + type +
                 ", seeds=" + seeds.length + ", aiPlayers=" + aiPlayers +
+                ", heuristicPlayers=" + heuristicPlayers +
                 ", randomPlayers=" + randomPlayers + '}';
     }
 }

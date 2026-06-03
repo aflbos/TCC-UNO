@@ -1,94 +1,173 @@
 # `Deck`
 
-## Visão geral
-A classe `Deck` representa o baralho de cartas do jogo UNO. Ela mantém uma lista interna de cartas e oferece operações para montar, embaralhar, comprar, recolocar, esvaziar e inspecionar cartas.
+## Visão Geral
 
-## Papel no sistema
-`Deck` é uma estrutura central da lógica de jogo, pois controla o fluxo das cartas durante a partida. O baralho é armazenado em uma lista, e o topo do baralho corresponde ao último elemento dessa lista.
+`Deck` é uma estrutura de dados que representa um baralho de cartas do UNO. É usada em dois papéis distintos dentro de `Simulation`: como **baralho de compras** (`drawDeck`) e como **pilha de descarte** (`discardPile`). Ambos compartilham a mesma implementação; o comportamento esperado de cada um é determinado pelo código que os manipula.
 
-## Estrutura interna
-### Atributo
-- `cards`: lista dinâmica que armazena todas as cartas do baralho.
+**Pacote:** `uno.game.models`
 
-### Convenção de topo
-O topo do baralho é o **último elemento** da lista (`cards.size() - 1`).
+---
 
-## Construtor
-### `Deck()`
-Cria um novo baralho já preenchido com cartas iniciais.
+## Convenção de Topo
 
-#### Como o baralho é montado (detalhado)
-1. **Cartas numéricas** (por cor):
-   - `ZERO` aparece **1 vez** por cor.
-   - `ONE` até `NINE` aparecem **2 vezes** por cor.
-   - Total por cor: 19 cartas numéricas.
-2. **Cartas de ação** (por cor):
-   - `SKIP`, `REVERSE`, `DRAW_TWO` aparecem **2 vezes** por cor.
-3. **Cartas especiais**:
-   - `WILD` aparece **4 vezes**.
-   - `DRAW_FOUR` aparece **4 vezes**.
+O topo do baralho é sempre o **último elemento** da lista interna (`cards.get(cards.size() - 1)`). Comprar remove do fim; adicionar insere no fim. Essa convenção é seguida consistentemente por todos os métodos.
 
-#### Total de cartas
-- 4 cores x 19 numéricas = 76
-- 4 cores x 3 ações x 2 cópias = 24
-- 8 especiais = 8
-- **Total: 108 cartas**
+---
 
-#### Observação importante
-A montagem depende da ordem de `Value` (índices 0-12 para numéricas e ações). Mudar a ordem do enum altera a composição.
+## Atributo Interno
+
+| Atributo | Tipo                  | Descrição                           |
+|----------|-----------------------|-------------------------------------|
+| `cards`  | `ArrayList<Card>`     | Lista dinâmica de cartas do baralho |
+
+---
+
+## Construtor — `Deck()`
+
+Cria um baralho completo e padrão do UNO com 108 cartas. A montagem é feita em três etapas:
+
+### 1. Cartas Numéricas (76 cartas)
+
+Loop externo: 4 cores (`colors[0]` a `colors[3]`, i.e., `RED`, `GREEN`, `BLUE`, `YELLOW`).
+Loop interno: `j` de 1 a 19 (exclusive), usando `values[j/2]`:
+
+| `j` | `j/2` | `Value`  | Adições por cor |
+|-----|-------|----------|-----------------|
+| 1   | 0     | `ZERO`   | 1               |
+| 2,3 | 1     | `ONE`    | 2               |
+| 4,5 | 2     | `TWO`    | 2               |
+| ... | ...   | ...      | ...             |
+|18,19| 9     | `NINE`   | 2               |
+
+Total: 1 (ZERO) + 9×2 (ONE–NINE) = 19 por cor × 4 cores = **76 cartas**.
+
+### 2. Cartas de Ação (24 cartas)
+
+Dois loops externos (`n = 0` e `n = 1`) × 4 cores × 3 ações (`values[10]`=`SKIP`, `values[11]`=`REVERSE`, `values[12]`=`DRAW_TWO`):
+
+2 × 4 × 3 = **24 cartas**.
+
+### 3. Cartas Especiais (8 cartas)
+
+4 `WILD` (`Color.BLACK`, `Value.WILD`) + 4 `DRAW_FOUR` (`Color.BLACK`, `Value.DRAW_FOUR`) = **8 cartas**.
+
+### Total: 108 cartas
+
+| Categoria         | Por cor | Cores | Total |
+|-------------------|---------|-------|-------|
+| `ZERO`            | 1       | 4     | 4     |
+| `ONE` – `NINE`    | 2 cada  | 4     | 72    |
+| `SKIP`            | 2       | 4     | 8     |
+| `REVERSE`         | 2       | 4     | 8     |
+| `DRAW_TWO`        | 2       | 4     | 8     |
+| `WILD`            | —       | —     | 4     |
+| `DRAW_FOUR`       | —       | —     | 4     |
+| **Total**         |         |       | **108** |
+
+> **Dependência crítica:** A montagem usa `Value.values()[j/2]` e `Value.values()[j]` com índices fixos. Se a ordem de `Value` mudar, a composição do baralho muda junto.
+
+---
 
 ## Métodos
+
 ### `shuffle(int seed)`
-Embaralha o baralho usando Fisher-Yates.
 
-#### Detalhe importante
-Se `seed == -1`, o embaralhamento é não determinístico; caso contrário, é reprodutível.
+Embaralha o baralho usando o algoritmo **Fisher-Yates** (variante de Knuth): percorre a lista de trás para frente e troca cada elemento com um elemento aleatório de posição igual ou anterior.
 
-### `drawCard()`
-Compra e remove a carta do topo (último elemento).
+| `seed`         | Comportamento                              |
+|----------------|--------------------------------------------|
+| `-1`           | `new Random()` — não determinístico        |
+| Qualquer outro | `new Random(seed)` — reprodutível com a mesma seed |
 
-#### Retorno
-- Carta removida do topo.
-- `null` se o baralho estiver vazio.
+Usado em `Simulation` em três momentos:
+1. No construtor, antes de distribuir as cartas iniciais.
+2. Em `initGame()`, para um segundo embaralhamento após `scramblePlayers()`.
+3. Em `reshuffleDeck()`, ao reciclar o descarte de volta ao baralho.
+
+---
+
+### `drawCard() → Card`
+
+Remove e retorna a carta do topo (último elemento da lista).
+
+- Retorna `null` se a lista estiver vazia.
+- Em `Simulation`, `canDraw()` sempre é verificado antes de chamar `drawCard()`, evitando o `null`.
+
+---
 
 ### `placeCard(Card card)`
-Adiciona a carta no topo (fim da lista).
+
+Insere a carta no topo (fim da lista). Usado para:
+- Adicionar cartas ao `discardPile` após uma jogada.
+- Reciclar cartas de volta ao `drawDeck` em `reshuffleDeck()`.
+
+Não valida `null` — passar `null` insere `null` na lista, o que causará `NullPointerException` em operações posteriores.
+
+---
 
 ### `emptyDeck()`
-Remove todas as cartas.
 
-### `peekTopCard()`
-Retorna a carta do topo sem remover.
+Chama `cards.clear()`, removendo todas as cartas. Usado em `initGame()` para limpar o `discardPile` antes de reiniciar.
 
-### `peekBottomCard()`
-Retorna a carta da base (índice `0`) sem remover.
+---
 
-### `getCards()` / `setCards(ArrayList<Card> cards)`
-Acessa ou substitui a lista interna.
+### `peekTopCard() → Card`
 
-#### Cuidados
-`getCards()` expõe a estrutura interna: alterações externas mudam o estado do baralho.
+Retorna a carta do topo sem remover. Retorna `null` se a lista estiver vazia.
 
-### `toString()`
-Retorna uma representação textual do baralho.
+Usado extensivamente em `Simulation` para inspecionar a carta ativa do descarte sem consumi-la.
 
-#### Comportamento
-- Se houver cartas, retorna a representação textual da carta do topo.
-- Se não houver cartas, retorna `No cards in deck.`.
+---
 
-## Regras e limitações
-- O topo é sempre o fim da lista.
-- Não há proteção contra `null` em `placeCard`.
-- `getCards()` permite mutação externa sem controle.
+### `peekBottomCard() → Card`
 
-## Exemplo de uso
-```java
-Deck deck = new Deck();
-deck.shuffle(1234);
+Retorna o elemento de índice `0` (base da lista) sem remover. Retorna `null` se vazio.
 
-Card first = deck.drawCard();
-System.out.println(first);
-```
+Uso menos frequente — presente para inspeção em casos específicos.
 
-## Resumo
-`Deck` concentra toda a lógica básica de armazenamento e manipulação do baralho do UNO dentro do projeto.
+---
+
+### `getCards() → ArrayList<Card>`
+
+Retorna a referência direta para a lista interna.
+
+> **Atenção:** Expõe o estado interno. Modificações externas na lista retornada (adicionar, remover, ou alterar cartas) afetam diretamente o baralho. Usado em `reshuffleDeck()` para iterar sobre as cartas do descarte antes de reciclá-las.
+
+### `setCards(ArrayList<Card> cards)`
+
+Substitui a lista interna por completo. Usado em `Simulation.playCard()` para implementar os efeitos de `ZERO` (rotação de mãos) e `SEVEN` (troca de mãos), diretamente sobre os decks dos jogadores.
+
+---
+
+### `toString() → String`
+
+Retorna:
+- A representação textual da carta do topo (via `Card.toString()`) se o baralho não estiver vazio.
+- `"No cards in deck."` se estiver vazio.
+
+---
+
+## Uso em `Simulation`
+
+| Instância       | Papel                      | Operações típicas                                    |
+|-----------------|----------------------------|------------------------------------------------------|
+| `drawDeck`      | Baralho de compras         | `drawCard()`, `shuffle()`, `getCards().isEmpty()`    |
+| `discardPile`   | Pilha de descarte          | `placeCard()`, `peekTopCard()`, `drawCard()` (reshuffle), `emptyDeck()` |
+
+### Ciclo de Reshuffle (`reshuffleDeck()`)
+
+Quando `drawDeck` fica vazio durante o jogo:
+1. A carta do topo de `discardPile` é preservada com `drawCard()`.
+2. Todas as cartas restantes do descarte são transferidas para `drawDeck` via `placeCard()`.
+3. Cartas `WILD` e `DRAW_FOUR` têm sua cor resetada para `Color.BLACK` antes de serem recolocadas.
+4. `discardPile` é esvaziado e a carta do topo é restaurada com `placeCard(topCard)`.
+5. `drawDeck` é embaralhado com a seed atual.
+
+---
+
+## Restrições e Cuidados
+
+- `drawCard()` e `peekTopCard()` retornam `null` com baralho vazio — sempre verifique `canDraw()` antes de comprar em `Simulation`.
+- `getCards()` expõe a estrutura interna sem proteção; use com cautela.
+- A composição automática em `Deck()` depende dos ordinals de `Value`; não altere a ordem do enum.
+- Não há método de tamanho explícito (`size()`); use `getCards().size()` para contar as cartas.

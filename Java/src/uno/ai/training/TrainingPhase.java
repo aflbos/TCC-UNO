@@ -18,14 +18,15 @@ public class TrainingPhase {
     public final RuleSpec[] ruleSpecs;
     public final int games;
     public final int aiPlayers;
+    public final int heuristicPlayers;
     public final int randomPlayers;
     public final int aiPlayersMin;
     public final int aiPlayersMax;
     public final int iterations;
-    
+
     public static TrainingPhase fromProperties(Properties props, int index) {
         String prefix = "phase." + index + ".";
-        
+
         String rawType = require(props, prefix + "type");
         Type type;
 
@@ -36,31 +37,33 @@ public class TrainingPhase {
                     "Unknown phase type '" + rawType + "' at " + prefix + "type. " +
                             "Valid types: FIXED, RANDOM_AI, MIXED, EXHAUSTIVE");
         }
-        
+
         String rawRules = props.getProperty(prefix + "rules",
                 "false,false,false,false,false,false,false,false");
         RuleSpec[] ruleSpecs = parseRuleSpecs(rawRules, prefix + "rules");
-        
+
         int games = intProp(props, prefix + "games", 0);
         int aiPlayers = intProp(props, prefix + "aiPlayers", 0);
+        int heuristicPlayers = intProp(props, prefix + "heuristicPlayers", 0);
         int randomPlayers = intProp(props, prefix + "randomPlayers", 0);
         int aiPlayersMin = intProp(props, prefix + "aiPlayersMin", 2);
         int aiPlayersMax = intProp(props, prefix + "aiPlayersMax", 10);
         int iterations = intProp(props, prefix + "iterations", 1);
 
         return new TrainingPhase(type, ruleSpecs, games,
-                aiPlayers, randomPlayers, aiPlayersMin, aiPlayersMax, iterations);
+                aiPlayers, heuristicPlayers, randomPlayers, aiPlayersMin, aiPlayersMax, iterations);
     }
 
     public boolean[] resolveRules(Random rng) {
         return RuleSpec.resolveAll(ruleSpecs, rng);
     }
 
-    private TrainingPhase(Type type, RuleSpec[] ruleSpecs, int games, int aiPlayers, int randomPlayers, int aiPlayersMin, int aiPlayersMax, int iterations) {
+    private TrainingPhase(Type type, RuleSpec[] ruleSpecs, int games, int aiPlayers, int heuristicPlayers, int randomPlayers, int aiPlayersMin, int aiPlayersMax, int iterations) {
         this.type = type;
         this.ruleSpecs = ruleSpecs;
         this.games = games;
         this.aiPlayers = aiPlayers;
+        this.heuristicPlayers = heuristicPlayers;
         this.randomPlayers = randomPlayers;
         this.aiPlayersMin = aiPlayersMin;
         this.aiPlayersMax = aiPlayersMax;
@@ -103,7 +106,8 @@ public class TrainingPhase {
     @Override
     public String toString() {
         return "ai.training.TrainingPhase{type=" + type + ", games=" + games +
-                ", aiPlayers=" + aiPlayers + ", randomPlayers=" + randomPlayers +
+                ", aiPlayers=" + aiPlayers + ", heuristicPlayers=" + heuristicPlayers +
+                ", randomPlayers=" + randomPlayers +
                 ", aiPlayersMin=" + aiPlayersMin + ", aiPlayersMax=" + aiPlayersMax +
                 ", iterations=" + iterations + '}';
     }

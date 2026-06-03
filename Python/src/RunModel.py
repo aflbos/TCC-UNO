@@ -82,13 +82,13 @@ def parse_args():
     parser.add_argument(
         "--show-outputs",
         action="store_true",
-        help="Print AI outputs (actions, rewards, dones) while running",
+        help="Print additional AI outputs (rewards, dones) while running",
     )
     parser.add_argument(
         "--output-every",
         type=int,
         default=1,
-        help="Print outputs every N steps when --show-outputs is enabled",
+        help="Print additional outputs every N steps when --show-outputs is enabled",
     )
     parser.add_argument(
         "--stochastic",
@@ -232,6 +232,10 @@ if __name__ == "__main__":
 
     try:
         obs = env.reset()
+        # --- MENSAGEM DE CONEXÃO BEM SUCEDIDA ---
+        print("\n" + "="*60)
+        print(f"✅ Conexão estabelecida com sucesso com {args.num_envs} ambiente(s)!")
+        print("="*60 + "\n")
     except EOFError as exc:
         with contextlib.suppress(Exception):
             env.close()
@@ -266,6 +270,8 @@ if __name__ == "__main__":
             else:
                 actions, _ = model.predict(obs, deterministic=deterministic)
 
+            print(f"[Passo {steps + 1}] Decisão da IA (Ações escolhidas): {np.asarray(actions).tolist()}")
+
             obs, rewards, dones, infos = env.step(actions)
             steps += 1
 
@@ -274,8 +280,7 @@ if __name__ == "__main__":
 
             if args.show_outputs and steps % args.output_every == 0:
                 print(
-                    f"[step {steps}] actions={np.asarray(actions).tolist()} "
-                    f"rewards={np.asarray(rewards).tolist()} dones={np.asarray(dones).tolist()}"
+                    f"    -> Detalhes extras: rewards={np.asarray(rewards).tolist()} dones={np.asarray(dones).tolist()}"
                 )
 
             if use_masks:
@@ -283,6 +288,6 @@ if __name__ == "__main__":
                     if "action_mask" in info:
                         masks[i] = info["action_mask"]
     except KeyboardInterrupt:
-        print("Interrupted by user. Closing environments...")
+        print("\nInterrompido pelo usuário. Fechando ambientes...")
     finally:
         env.close()

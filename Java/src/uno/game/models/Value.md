@@ -1,66 +1,124 @@
 # `Value`
 
-## Visão geral
-A enumeração `Value` representa os valores das cartas do UNO, incluindo cartas numéricas, cartas de ação e cartas especiais.
+## Visão Geral
 
-## Valores definidos
-### Cartas numéricas
-- `ZERO`
-- `ONE`
-- `TWO`
-- `THREE`
-- `FOUR`
-- `FIVE`
-- `SIX`
-- `SEVEN`
-- `EIGHT`
-- `NINE`
+`Value` é uma enumeração que define todos os valores possíveis de cartas no UNO: números (0–9), cartas de ação (`SKIP`, `REVERSE`, `DRAW_TWO`) e cartas especiais (`WILD`, `DRAW_FOUR`). A ordem de declaração é fundamental para o mapeamento de ids usado em `Card`, para a composição do baralho em `Deck`, e para a indexação dos vetores de IA em `Simulation`.
 
-### Cartas de ação
-- `SKIP`
-- `REVERSE`
-- `DRAW_TWO`
+**Pacote:** `uno.game.models`
 
-### Cartas especiais
-- `WILD`
-- `DRAW_FOUR`
+---
 
-## Estrutura interna
-### Ordem e grupos
-A ordem e relevante para o mapeamento de ids em `Card` e para a montagem do `Deck`:
+## Valores Declarados
 
-1. Numericas: `ZERO` ate `NINE` (indices 0-9)
-2. Acoes: `SKIP`, `REVERSE`, `DRAW_TWO` (indices 10-12)
-3. Especiais: `WILD`, `DRAW_FOUR` (indices 13-14)
+### Cartas Numéricas (ordinals 0–9)
 
-Alterar essa ordem impacta `Card.getId()` e a composicao do baralho.
+| Constante | `ordinal()` | `toString()` |
+|-----------|-------------|--------------|
+| `ZERO`    | 0           | `0`          |
+| `ONE`     | 1           | `1`          |
+| `TWO`     | 2           | `2`          |
+| `THREE`   | 3           | `3`          |
+| `FOUR`    | 4           | `4`          |
+| `FIVE`    | 5           | `5`          |
+| `SIX`     | 6           | `6`          |
+| `SEVEN`   | 7           | `7`          |
+| `EIGHT`   | 8           | `8`          |
+| `NINE`    | 9           | `9`          |
 
-## Metodos relevantes
-### `toString()`
-Converte o valor para texto em portugues, usado nas saidas de `Card.toString()`:
+### Cartas de Ação (ordinals 10–12)
 
-- Numeros: `"0"` a `"9"`
-- `SKIP` -> `PULAR`
-- `REVERSE` -> `INVERTER`
-- `DRAW_TWO` -> `COMPRA 2`
-- `WILD` -> `CURINGA`
-- `DRAW_FOUR` -> `COMPRA 4`
+| Constante   | `ordinal()` | `toString()` | Efeito em `playCard()`                              |
+|-------------|-------------|--------------|-----------------------------------------------------|
+| `SKIP`      | 10          | `PULAR`      | Avança o ponteiro de jogador mais uma vez (`nextPlayer()`), pulando o próximo. |
+| `REVERSE`   | 11          | `INVERTER`   | Inverte a direção do turno (`invertDirection()`).   |
+| `DRAW_TWO`  | 12          | `COMPRA 2`   | Adiciona 2 ao `stackingAmount`, forçando o próximo jogador a comprar (ou empilhar). |
 
-Se algum valor novo for adicionado e nao tratado, o metodo cai no `name()`.
+### Cartas Especiais (ordinals 13–14)
 
-## Papel no sistema
-`Value` é usada pela classe `Card` para representar o conteúdo principal da carta. A ordem dos valores também é relevante porque a conversão de cartas para identificador numérico depende de `ordinal()`.
+| Constante    | `ordinal()` | `toString()` | Id fixo | Efeito em `playCard()`                                                              |
+|--------------|-------------|--------------|---------|--------------------------------------------------------------------------------------|
+| `WILD`       | 13          | `CURINGA`    | `52`    | Ativa escolha de cor pelo jogador (`chooseColor()`).                                |
+| `DRAW_FOUR`  | 14          | `COMPRA 4`   | `53`    | Ativa escolha de cor e adiciona 4 ao `stackingAmount`. Detecta e registra blefe. |
 
-## Observações de implementação
-- Os indices 0-12 sao usados para ids por cor (0-51).
-- `WILD` e `DRAW_FOUR` sao tratados separadamente por id (52 e 53).
-- A ordem dos elementos da enumeração não deve ser alterada sem revisar a lógica de `Card`.
+---
 
-## Exemplo de uso
-```java
-Value value = Value.DRAW_TWO;
-System.out.println(value);
+## Método `toString()`
+
+Retorna o rótulo em português de cada valor. Usado em todas as saídas de `Card.toString()` e logs do sistema. O bloco `default` retorna `name()` para constantes futuras não mapeadas.
+
+---
+
+## Papel no Sistema
+
+### Em `Card.getId()` e `Card.setId(int)`
+
+Os ordinals de 0 a 12 são usados diretamente como o componente `value.ordinal()` na fórmula:
+
+```
+id = color.ordinal() * 13 + value.ordinal()
 ```
 
-## Resumo
-`Value` reúne os números, ações e curingas do UNO em uma única enumeração, servindo de base para a modelagem das cartas.
+`WILD` (ordinal 13) e `DRAW_FOUR` (ordinal 14) **não entram nessa fórmula** — seus ids são fixos em `52` e `53`, tratados como casos especiais em `getId()` e `setId()`.
+
+### Em `Deck()` — Composição do Baralho
+
+A composição do baralho em `Deck` depende diretamente dos ordinals:
+
+**Cartas numéricas** (loop `j` de 1 a 19, incrementando por metade via `values[j/2]`):
+
+| `j`        | `j/2` | `Value.values()[j/2]` | Ocorrências por cor |
+|------------|-------|----------------------|---------------------|
+| 1          | 0     | `ZERO`               | 1×                  |
+| 2–3        | 1     | `ONE`                | 2×                  |
+| 4–5        | 2     | `TWO`                | 2×                  |
+| ...        | ...   | ...                  | ...                 |
+| 18–19      | 9     | `NINE`               | 2×                  |
+
+**Cartas de ação** (loop `j` de 10 a 12, 2 cópias por cor):
+- `values[10]` = `SKIP`, `values[11]` = `REVERSE`, `values[12]` = `DRAW_TWO`
+
+Isso confirma que a montagem correta do baralho depende inteiramente de `ZERO`–`NINE` estar nos ordinals 0–9 e `SKIP`–`DRAW_TWO` nos ordinals 10–12.
+
+### Em `Simulation.isCardPlayable(Card)`
+
+`SKIP`, `REVERSE`, `DRAW_TWO` e `DRAW_FOUR` têm comportamento especial durante empilhamento:
+
+- Quando `stackingAmount > 0` e o topo é `DRAW_TWO`:
+  - Com `RULE_STACKING` ou `RULE_SKIP_N_FLIP`: `DRAW_TWO`, `DRAW_FOUR`, `SKIP`, `REVERSE` são jogáveis.
+  - Sem essas regras: apenas `DRAW_TWO` e `DRAW_FOUR`.
+- Quando o topo é `DRAW_FOUR`:
+  - Com `RULE_SKIP_N_FLIP`: `DRAW_TWO`, `DRAW_FOUR`, `SKIP`, `REVERSE`.
+  - Sem: apenas `DRAW_FOUR`.
+
+### Em `Simulation.playCard(Card)`
+
+Cada `Value` dispara efeitos distintos no `switch`:
+
+| `Value`     | Efeito                                                                            |
+|-------------|-----------------------------------------------------------------------------------|
+| `REVERSE`   | Inverte direção do turno                                                          |
+| `SKIP`      | Chama `nextPlayer()` — o próximo jogador é pulado                                 |
+| `WILD`      | Abre decisão de cor; seta `card.setColor(chosenColor)`                            |
+| `DRAW_TWO`  | `stackingAmount += 2`                                                             |
+| `DRAW_FOUR` | Detecta blefe, abre decisão de cor, `stackingAmount += 4`                         |
+| `ZERO`      | Com `RULE_SEVEN_ZERO`: rotação de mãos entre todos os jogadores em ordem de turno |
+| `SEVEN`     | Com `RULE_SEVEN_ZERO`: escolha de jogador para trocar mãos                        |
+
+### Em `Simulation.initGame()`
+
+A primeira carta virada do baralho pode acionar efeitos imediatos antes do primeiro turno:
+
+| `Value` inicial | Efeito                              |
+|-----------------|-------------------------------------|
+| `REVERSE`       | Inverte a direção inicial           |
+| `SKIP`          | Pula o primeiro jogador             |
+| `DRAW_TWO`      | `stackingAmount += 2`               |
+| `DRAW_FOUR`     | `stackingAmount += 4`               |
+
+---
+
+## Restrições e Cuidados
+
+- **A ordem de declaração é imutável em produção.** Qualquer alteração nos ordinals 0–14 invalida `Card.getId()`, a composição do `Deck`, os vetores de observação e todos os modelos de IA treinados.
+- **Adicionar novos valores** exige revisão completa de `Card`, `Deck`, `Simulation` e do lado Python (`UnoEnv`, espaços de ação/observação).
+- O bloco `default: return name()` em `toString()` previne falha silenciosa para valores não mapeados, mas não substitui a necessidade de atualizar o `switch`.
