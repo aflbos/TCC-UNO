@@ -58,6 +58,7 @@ public class Simulation {
     private int currentPlayerIndex = 0;
     private int direction = 1; // +1 forward, -1 backward
     private int stackingAmount = 0;
+    private int skipAmount = 0;
     private boolean previousPlayerBluffed = false;
     private boolean human;
     private boolean ai;
@@ -299,6 +300,11 @@ public class Simulation {
 
         turnCounter++;
         nextPlayer();
+
+        while (skipAmount > 0) {
+            nextPlayer();
+            skipAmount--;
+        }
 
         setObservationVector(generateObservationVector());
         setDecisionMask(generateDecisionMask(new ArrayList<>()));
@@ -673,7 +679,7 @@ public class Simulation {
                 break;
 
             case SKIP:
-                nextPlayer();
+                skipAmount++;
                 break;
 
             case WILD:
@@ -783,7 +789,6 @@ public class Simulation {
     private double[] generateObservationVector() {
         double[] observationVector = new double[OBS_SIZE];
 
-        // 1. Index 0-53: Player's hand
         for (Card card : getCurrentPlayer().getCards()) {
             observationVector[card.getId()] += 0.5;
             if (observationVector[card.getId()] > 1) {
@@ -791,24 +796,19 @@ public class Simulation {
             }
         }
 
-        // 3. Index 108-161: Top card on discard pile
         observationVector[discardPile.peekTopCard().getId() + 108] = 1;
 
-        // Cap the mapped opponents to a maximum of 10 so it doesn't bleed into indices 172+
         int maxOpponentsToMap = Math.min(players.length, 10);
 
-        // 4. Index 162-171: Amount of cards in each opponent's hand
         for (int i = 0; i < maxOpponentsToMap; i++) {
             int playerIndex = Math.floorMod(currentPlayerIndex + direction * (i + 1), players.length);
             observationVector[162 + i] = ((double) players[playerIndex].getCards().size()) / 20;
         }
 
-        // 4. Index 162-171: Set -1 for players that are not in the game
         for (int i = 162 + maxOpponentsToMap; i < 172; i++) {
             observationVector[i] = -1;
         }
 
-        // 5. Index 172-179: Flags for the rules
         for (int i = 172; i < 180; i++) {
             if (rules[i - 172]) {
                 observationVector[i] = 1.0;

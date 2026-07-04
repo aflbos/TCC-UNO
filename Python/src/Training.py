@@ -304,7 +304,7 @@ if __name__ == "__main__":
     spec, algo_cls = resolve_algo(algo_name)
     validate_action_space(env, algo_name, spec)
 
-    existing_model_path = python_dir / "models" / algo_dir / "uno" / "generated models" / "2026-04-11_03-14-47" / "uno_ai_model_2026-04-11_03-14-47.zip.xxx"
+    existing_model_path = "C:/Users/User/Documents/InteliJ/TCC-UNO/Python/models/DQN/uno/generated models/2026-06-08_12-46-24/uno_ai_model_2026-06-08_12-46-24.zip"
 
     if os.path.exists(existing_model_path):
         print(f"Loading existing model {existing_model_path}")

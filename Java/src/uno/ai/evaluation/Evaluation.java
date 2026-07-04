@@ -8,10 +8,17 @@ import uno.game.engine.Simulation;
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Evaluation {
 
-    private static final String DEFAULT_CONFIG = "C:\\Users\\User\\Documents\\InteliJ\\TCC-UNO\\Java\\res\\evaluation_default_config.properties";
+    private static final String DEFAULT_CONFIG = "Java/res/evaluation profiles/evaluation_heuristic_house_rules_4p_100.properties";
+
+    // Contadores globais thread-safe para agregar os resultados de todas as threads
+    private static final AtomicInteger globalAiWins = new AtomicInteger(0);
+    private static final AtomicInteger globalHeuristicWins = new AtomicInteger(0);
+    private static final AtomicInteger globalRandomWins = new AtomicInteger(0);
+    private static final AtomicInteger globalDraws = new AtomicInteger(0);
 
     public static void main(String[] args) {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
@@ -42,6 +49,7 @@ public class Evaluation {
             threads[i].start();
         }
 
+        // Aguarda todas as threads finalizarem
         for (Thread thread : threads) {
             try {
                 thread.join();
@@ -51,6 +59,9 @@ public class Evaluation {
         }
 
         System.out.println("All evaluation sessions completed.");
+
+        // Exibe os resultados globais no console ao final da execução
+        printGlobalScores();
     }
 
     private static void runWorker(int port, String id, ConnectionAI ConnectionAI, List<EvaluationSuite> suites) {
@@ -188,8 +199,44 @@ public class Evaluation {
 
     private static void printScore(String suiteName, String id,
                                    int aiWins, int heuristicWins, int randomWins, int draws) {
-        System.out.println(id + ". [" + suiteName + "] Done — " +
-                aiWins + " AI wins, " + heuristicWins + " Heuristic wins, " + randomWins + " Random wins, " + draws + " draws.");
+
+        // Adiciona os resultados locais aos contadores globais
+        globalAiWins.addAndGet(aiWins);
+        globalHeuristicWins.addAndGet(heuristicWins);
+        globalRandomWins.addAndGet(randomWins);
+        globalDraws.addAndGet(draws);
+
+        int totalGames = aiWins + heuristicWins + randomWins + draws;
+        double aiWinRate = totalGames > 0 ? ((double) aiWins / totalGames) * 100.0 : 0.0;
+
+        System.out.printf("%s. [%s] Done — %d AI wins (%.2f%% win rate), %d Heuristic wins, %d Random wins, %d draws.%n",
+                id, suiteName, aiWins, aiWinRate, heuristicWins, randomWins, draws);
+    }
+
+    // Método que apresenta as estatísticas e as formata na visão de Vitórias, Derrotas e Empates
+    private static void printGlobalScores() {
+        int aiWins = globalAiWins.get();
+        int heuristicWins = globalHeuristicWins.get();
+        int randomWins = globalRandomWins.get();
+        int draws = globalDraws.get();
+
+        // Derrotas da IA equivalem às vitórias da Heurística somadas às vitórias Aleatórias
+        int losses = heuristicWins + randomWins;
+        int totalGames = aiWins + losses + draws;
+
+        System.out.println("\n========================================");
+        System.out.println("          RESULTADOS GLOBAIS            ");
+        System.out.println("========================================");
+        System.out.printf("Total de partidas jogadas: %d%n", totalGames);
+
+        if (totalGames > 0) {
+            System.out.printf("Vitórias (IA): %d (%.2f%%)%n", aiWins, (aiWins * 100.0) / totalGames);
+            System.out.printf("Derrotas:      %d (%.2f%%)%n", losses, (losses * 100.0) / totalGames);
+            System.out.printf("  ↳ Heurística:%d%n", heuristicWins);
+            System.out.printf("  ↳ Aleatório: %d%n", randomWins);
+            System.out.printf("Empates:       %d (%.2f%%)%n", draws, (draws * 100.0) / totalGames);
+        }
+        System.out.println("========================================\n");
     }
 
     private static final class GameResult {
