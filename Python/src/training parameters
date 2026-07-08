@@ -1,0 +1,12 @@
+--algo
+maskableppo
+--total-timesteps
+100000000
+--device
+cpu
+--num-envs
+8
+--host
+localhost
+--start-port
+6000
