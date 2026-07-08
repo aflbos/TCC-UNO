@@ -2,7 +2,10 @@ package uno.network.ui;
 
 import uno.ai.network.ConnectionAI;
 import uno.network.GameServer;
+import uno.network.GameHostListener;
 import uno.network.NetworkProtocol;
+import uno.game.players.Player;
+import uno.game.models.Card;
 
 import java.io.IOException;
 import java.util.List;
@@ -365,6 +368,34 @@ public class HostApp {
             state.returnToMenu = true;
         });
 
+        // Configura listener para receber notificações do estado do jogo
+        server.setGameHostListener(new GameHostListener() {
+            @Override
+            public void onGameStateUpdate(Player[] players, String currentPlayerName, Card topCard, int turnCounter, java.util.List<String> recentPlays) {
+                if (!state.suppressLobbyPrint) {
+                    printGameState(players, currentPlayerName, topCard, turnCounter);
+                    if (recentPlays != null && !recentPlays.isEmpty()) {
+                        System.out.println(BOLD + CYAN + "Histórico de jogadas (últimas " + recentPlays.size() + "):" + RESET);
+                        int start = Math.max(0, recentPlays.size() - 10);
+                        for (int i = start; i < recentPlays.size(); i++) {
+                            System.out.println("  " + recentPlays.get(i));
+                        }
+                        System.out.println();
+                    }
+                }
+            }
+
+            @Override
+            public void onCardPlayedNotification(String playerName, Card card) {
+                // Notificação opcional
+            }
+
+            @Override
+            public void onCardsDrawnNotification(String playerName, int cardCount) {
+                // Notificação opcional
+            }
+        });
+
         try {
             server.start(port);
         } catch (IOException e) {
@@ -579,6 +610,45 @@ public class HostApp {
         RED = ConsoleStyle.RED;
         BLUE = ConsoleStyle.BLUE;
         MAGENTA = ConsoleStyle.MAGENTA;
+    }
+
+    private static void printGameState(Player[] players, String currentPlayerName, Card topCard, int turnCounter) {
+        System.out.println(BOLD + CYAN + "\n=== Estado do Jogo (Turno " + turnCounter + ") ===" + RESET);
+        
+        // Carta no topo da pilha de descarte
+        System.out.println(BOLD + YELLOW + "Carta no topo da pilha:" + RESET + " " + formatCard(topCard));
+        
+        // Jogadores e cartas
+        System.out.println(BOLD + CYAN + "\nJogadores:" + RESET);
+        for (Player player : players) {
+            String status = player.getName().equals(currentPlayerName) ? " " + BOLD + ">>> (jogando) <<<" + RESET : "";
+            String cardCount = CYAN + "[" + player.getCards().size() + " cartas]" + RESET;
+            System.out.println("  " + GREEN + ConsoleStyle.padRight(player.getName(), 20) + RESET + " " + cardCount + status);
+        }
+        
+        System.out.println();
+    }
+
+    private static String formatCard(Card card) {
+        if (card == null) return "Nenhuma";
+        String colorCode = getColorCode(card.getColor().toString());
+        return colorCode + card.toString() + RESET;
+    }
+
+    private static String getColorCode(String colorName) {
+        switch (colorName.toLowerCase()) {
+            case "red":
+            case "vermelho": return RED + BOLD;
+            case "green":
+            case "verde": return GREEN + BOLD;
+            case "blue":
+            case "azul": return BLUE + BOLD;
+            case "yellow":
+            case "amarelo": return YELLOW + BOLD;
+            case "black":
+            case "preto": return MAGENTA + BOLD;
+            default: return RESET;
+        }
     }
 
     private static final class HostShellState {

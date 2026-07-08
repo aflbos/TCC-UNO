@@ -76,6 +76,14 @@ public class PlayerConnection {
         out.println(NetworkProtocol.encode(NetworkProtocol.S_GAME_OVER, winnerName));
     }
 
+    public void sendGameStateUpdate(String playersSummary, String topCard, int turnCounter) {
+        out.println(NetworkProtocol.encode(
+                NetworkProtocol.S_GAME_STATE_UPDATE,
+                playersSummary,
+                topCard,
+                String.valueOf(turnCounter)));
+    }
+
     public int receiveAction() throws IOException {
         int prev = socket.getSoTimeout();
         socket.setSoTimeout(ACTION_READ_TIMEOUT_MS);

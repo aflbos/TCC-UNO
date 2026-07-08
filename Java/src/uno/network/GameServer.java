@@ -3,6 +3,8 @@ package uno.network;
 import uno.ai.network.ConnectionAI;
 import uno.game.engine.Simulation;
 import uno.game.players.*;
+import uno.game.event.GameEventListener;
+import uno.game.models.Card;
 
 import java.io.IOException;
 import java.net.*;
@@ -54,6 +56,10 @@ public class GameServer {
     private Consumer<List<LobbySlot>> onLobbyChanged = ignored -> {};
     private Runnable onMatchEnded = () -> {};
     private Consumer<String> onPlayerDisconnected = ignored -> {};
+    private GameHostListener gameHostListener = null;
+    private volatile Simulation currentSimulation = null;
+    private final java.util.Deque<String> playHistory = new java.util.ArrayDeque<>();
+    private final int MAX_HISTORY = 200;
 
     public GameServer(String hostName) {
         this.hostName = hostName;
@@ -184,6 +190,10 @@ public class GameServer {
     
     public void setOnPlayerDisconnected(Consumer<String> callback) {
         this.onPlayerDisconnected = callback != null ? callback : ignored -> {};
+    }
+
+    public void setGameHostListener(GameHostListener listener) {
+        this.gameHostListener = listener;
     }
 
     public List<LobbySlot> getSlots()  { return Collections.unmodifiableList(slots); }
@@ -322,6 +332,39 @@ public class GameServer {
         Simulation sim = new Simulation(players, null, rules, gameId, seed);
         for (Player p : players) p.setSimulation(sim);
 
+        currentSimulation = sim;
+
+        // Registra um listener externo para coletar eventos de jogadas/compras no histórico
+        sim.addExternalListener(new GameEventListener() {
+            @Override
+            public void onCardPlayed(Player player, Card card) {
+                try {
+                    String entry = String.format("%s jogou %s", player.getName(), card == null ? "(nenhuma)" : card.toString());
+                    synchronized (playHistory) {
+                        if (playHistory.size() >= MAX_HISTORY) playHistory.removeFirst();
+                        playHistory.addLast(entry);
+                    }
+                    if (gameHostListener != null) {
+                        try { gameHostListener.onCardPlayedNotification(player.getName(), card); } catch (Exception ignored) {}
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            @Override
+            public void onCardDrawn(Player player, Card drawn) {
+                try {
+                    String entry = String.format("%s comprou %s", player.getName(), drawn == null ? "(desconhecida)" : drawn.toString());
+                    synchronized (playHistory) {
+                        if (playHistory.size() >= MAX_HISTORY) playHistory.removeFirst();
+                        playHistory.addLast(entry);
+                    }
+                    if (gameHostListener != null) {
+                        try { gameHostListener.onCardsDrawnNotification(player.getName(), 1); } catch (Exception ignored) {}
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
+
         for (ClientHandler ch : clients) {
             ch.connection.sendGameStart();
         }
@@ -335,10 +378,12 @@ public class GameServer {
                 sim.startGame();
                 while (gameStarted && !sim.isGameOver()) {
                     sim.playTurn();
+                    // Notifica o HOST sobre o estado do jogo após cada turno
+                    notifyGameStateToHost(sim);
                 }
             } catch (RuntimeException e) {
                 if (Thread.currentThread().isInterrupted()) {
-                    // Expected when host stops the current match.
+                    // Esperado quando o host para a partida atual.
                 } else if (e.getMessage() != null && e.getMessage().contains("disconnected")) {
                     onPlayerDisconnected.accept(e.getMessage());
                 } else {
@@ -452,6 +497,51 @@ public class GameServer {
 
     private void fireOnLobbyChanged() {
         onLobbyChanged.accept(getSlots());
+    }
+
+    private void notifyGameStateToHost(Simulation sim) {
+        if (gameHostListener != null) {
+            try {
+                java.util.List<String> recentPlays;
+                synchronized (playHistory) {
+                    recentPlays = new java.util.ArrayList<>(playHistory);
+                }
+                gameHostListener.onGameStateUpdate(
+                        sim.getPlayers(),
+                        sim.getCurrentPlayer().getName(),
+                        sim.getTopCard(),
+                        sim.getTurnCounter(),
+                        recentPlays
+                );
+                return;
+            } catch (Exception ignored) {
+                // Ignore errors in host listener
+            }
+        }
+
+        // Fallback: imprima um resumo conciso no console do servidor para que o processo host
+        // veja as atualizações mesmo se nenhum GameHostListener estiver registrado
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[HOST_STATE] Turno ").append(sim.getTurnCounter()).append(" - Top: ");
+            if (sim.getTopCard() != null) sb.append(sim.getTopCard()); else sb.append("(nenhuma)");
+            sb.append(" | Players: ");
+            Player[] players = sim.getPlayers();
+            for (int i = 0; i < players.length; i++) {
+                if (i > 0) sb.append(" , ");
+                sb.append(players[i].getName()).append("[").append(players[i].getCards().size()).append("]");
+            }
+            System.out.println(sb.toString());
+        } catch (Exception ignored) {
+            // Apenas melhor esforço
+        }
+    }
+
+    public int getTurnCounter() {
+        if (currentSimulation != null) {
+            return currentSimulation.getTurnCounter();
+        }
+        return 0;
     }
 
     private void broadcastHostNotice(String message) {

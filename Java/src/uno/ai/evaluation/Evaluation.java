@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Evaluation {
 
-    private static final String DEFAULT_CONFIG = "Java/res/evaluation profiles/evaluation_heuristic_house_rules_4p_100.properties";
+    private static final String DEFAULT_CONFIG = "Java/res/evaluation profiles/evaluation_random_official_4p_100.properties";
 
     // Contadores globais thread-safe para agregar os resultados de todas as threads
     private static final AtomicInteger globalAiWins = new AtomicInteger(0);
@@ -75,6 +75,11 @@ public class Evaluation {
             runSuite(suite, id, ConnectionAI);
         }
 
+        // After finishing the assigned suites, print the current aggregated totals
+        // so the operator can see progress as threads complete their work.
+        printPartialGlobalScores(id);
+
+        // Enter keep-alive loop to keep the connection open (existing behaviour)
         runKeepAlive(id, ConnectionAI);
     }
 
@@ -237,6 +242,31 @@ public class Evaluation {
             System.out.printf("Empates:       %d (%.2f%%)%n", draws, (draws * 100.0) / totalGames);
         }
         System.out.println("========================================\n");
+    }
+
+    // Prints the current global aggregate counts with a prefix identifying the worker
+    // This shows partial results when a worker has finished its evaluation suites
+    private static void printPartialGlobalScores(String id) {
+        int aiWins = globalAiWins.get();
+        int heuristicWins = globalHeuristicWins.get();
+        int randomWins = globalRandomWins.get();
+        int draws = globalDraws.get();
+
+        int losses = heuristicWins + randomWins;
+        int totalGames = aiWins + losses + draws;
+
+        System.out.println("\n----------------------------------------");
+        System.out.println(id + ". Partial aggregated results:");
+        System.out.println("----------------------------------------");
+        System.out.printf("Total matches so far: %d%n", totalGames);
+        if (totalGames > 0) {
+            System.out.printf("  IA wins:       %d (%.2f%%)%n", aiWins, (aiWins * 100.0) / totalGames);
+            System.out.printf("  Losses:        %d (%.2f%%)%n", losses, (losses * 100.0) / totalGames);
+            System.out.printf("    ↳ Heuristic: %d%n", heuristicWins);
+            System.out.printf("    ↳ Random:    %d%n", randomWins);
+            System.out.printf("  Draws:         %d (%.2f%%)%n", draws, (draws * 100.0) / totalGames);
+        }
+        System.out.println("----------------------------------------\n");
     }
 
     private static final class GameResult {

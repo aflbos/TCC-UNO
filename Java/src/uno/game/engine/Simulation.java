@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Consumer;
+import uno.game.event.GameEventListener;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Simulation {
     private static final int MASK_COLOR_RED = 55;
@@ -72,6 +75,7 @@ public class Simulation {
     private int[] validInputs;
     private int[] playableCardIdsForNetwork = new int[0];
     private Logger logger = null;
+    private final List<GameEventListener> externalListeners = new CopyOnWriteArrayList<>();
 
     // Updated Constructor adapting the Heuristic Player
     public Simulation(int numHumanPlayers, int numAIPlayers, int numHeuristicPlayers, int numRandomPlayers, ConnectionAI ConnectionAI, boolean[] rules, String id, int seed) {
@@ -975,6 +979,10 @@ public class Simulation {
         return discardPile.peekTopCard();
     }
 
+    public int getTurnCounter() {
+        return turnCounter;
+    }
+
     public Logger getLogger() {
         return logger;
     }
@@ -1001,5 +1009,17 @@ public class Simulation {
                 event.accept((GameEventListener) player);
             }
         }
+        for (GameEventListener l : externalListeners) {
+            try { event.accept(l); } catch (Exception ignored) {}
+        }
+    }
+
+    public void addExternalListener(GameEventListener listener) {
+        if (listener == null) return;
+        externalListeners.add(listener);
+    }
+
+    public void removeExternalListener(GameEventListener listener) {
+        externalListeners.remove(listener);
     }
 }

@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class Training {
 
-    private static final String DEFAULT_CONFIG = "Java/res/training profiles/training_official_4p_loop.properties";
+    private static final String DEFAULT_CONFIG = "Java/res/training profiles/training_official_4p_100.properties";
 
     public static void main(String[] args) {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;

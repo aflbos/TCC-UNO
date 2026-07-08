@@ -17,6 +17,7 @@ public final class NetworkProtocol {
     public static final String S_GAME_OVER = "GAME_OVER";
     public static final String S_LOBBY_UPDATE = "LOBBY_UPDATE";
     public static final String S_GAME_START = "GAME_START";
+    public static final String S_GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
 
     public static final String C_NAME = "NAME";
     public static final String C_ACTION = "ACTION";
