@@ -1,1 +1,0 @@
-pyinstaller --onefile --name "UNO-RunModel" --collect-all stable_baselines3 --collect-all sb3_contrib collect-all gymnasium --collect-all torch --hidden-import cloudpickle RunModel.py

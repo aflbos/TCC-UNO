@@ -234,7 +234,7 @@ if __name__ == "__main__":
         obs = env.reset()
         # --- MENSAGEM DE CONEXÃO BEM SUCEDIDA ---
         print("\n" + "="*60)
-        print(f"✅ Conexão estabelecida com sucesso com {args.num_envs} ambiente(s)!")
+        print(f"Conexão estabelecida com sucesso com {args.num_envs} ambiente(s)!")
         print("="*60 + "\n")
     except EOFError as exc:
         with contextlib.suppress(Exception):
