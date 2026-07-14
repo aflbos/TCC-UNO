@@ -1,0 +1,106 @@
+TUTORIAL - Como usar o sistema UNO (TCC-UNO)
+
+Este tutorial explica, em passos claros, como executar as partes principais do sistema: componentes Java (host/cliente/jogo) e scripts Python (treinamento e execução de modelos), além de como usar perfis de treino/avaliação e localizar modelos já treinados.
+
+1) Visão geral
+
+- Código Java: em Java/src/ está a implementação do motor de jogo, eventos, loggers e jogadores.
+- Recursos (profiles): em Java/res/ estão os perfis de treinamento e avaliação (pastas "training profiles" e "evaluation profiles").
+- Código Python: em Python/src/ há scripts para treinar e executar modelos (Training.py, RunModel.py, TensorBoardLauncher.py, UnoEnviroment.py). Modelos pré-treinados ficam em Python/models/hand-picked models/.
+
+2) Pré-requisitos
+
+- Java JDK (11+ recomendado) e uma IDE como IntelliJ IDEA para executar/compilar o código Java.
+- Python 3.8+ (recomenda-se criar um ambiente virtual).
+- Dependências Python: instale pacotes listados no projeto (se existir requirements.txt). Caso não exista, verifique os imports nos scripts e instale manualmente (ex.: tensorflow, gym, numpy).
+
+Exemplo (PowerShell) para criar e ativar venv e instalar dependências:
+
+```powershell
+# criar venv
+python -m venv .venv
+# ativar
+.\.venv\Scripts\Activate.ps1
+# instalar (se existir requirements.txt)
+pip install -r Python/requirements.txt
+```
+
+Exemplo (bash):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r Python/requirements.txt
+```
+
+3) Executando a parte Java
+
+Opções:
+- Abra o projeto Java/ no IntelliJ e rode as classes principais a partir da IDE.
+- Compile e execute via linha de comando (javac/java) ou execute um jar se disponível.
+
+Sugestões:
+- Para executar um host de jogo (servidor) e clientes, rode a classe que inicia o host (procure por classes com nome Host ou GameHost em Java/src/uno/network ou Java/src/uno/game/engine).
+- Logs e outputs do jogo são gravados pelos loggers em Java/src/uno/game/loggers/.
+
+Exemplo genérico (PowerShell) — adapte para as classes reais do projeto:
+
+```powershell
+# navegar até a pasta com arquivos .class ou com classpath configurado
+cd Java/out/production/Java
+# executar a classe que inicia o host (substitua UnoHostMain pelo nome real)
+java uno.network.UnoHostMain
+```
+
+4) Executando os scripts Python (treino e inferência)
+
+- Training.py: script para treinar modelos. Configure parâmetros e escolha o profile adequado.
+- RunModel.py: carrega um modelo treinado em Python/models/hand-picked models/ e executa partidas para avaliação.
+- TensorBoardLauncher.py: inicia o TensorBoard apontando para diretórios de log.
+
+Exemplos (PowerShell):
+
+```powershell
+# ativar venv antes
+.\.venv\Scripts\Activate.ps1
+# treinar (exemplo)
+python Python/src/Training.py --profile "Java/res/training profiles/training_official_4p_100.properties"
+# executar modelo
+python Python/src/RunModel.py --model "Python/models/hand-picked/mppo_4p_official.zip"
+# iniciar TensorBoard (se houver logs)
+python Python/src/TensorBoardLauncher.py --logdir logs/
+```
+
+Observações:
+- Ajuste caminhos conforme nomes reais; pastas com espaços exigem aspas ou escape.
+
+5) Perfis de treinamento e avaliação
+
+- Perfis de treino: Java/res/training profiles/
+- Perfis de avaliação: Java/res/evaluation profiles/
+- Cada arquivo .properties define parâmetros como número de episódios, configurações do ambiente, seed, etc. Consulte os README nessas pastas para a descrição das propriedades.
+
+6) Modelos pré-treinados
+
+- Localização: Python/models/hand-picked models/
+- Os arquivos .zip contêm pesos e metadados que RunModel.py deve ser capaz de carregar. Verifique o cabeçalho do script para o formato esperado.
+
+7) Logs e execução em lote
+
+- Logs de partidas e treinos podem ser configurados para diretórios logs/ ou pastas específicas; verifique as classes de logger em Java e os scripts Python.
+- Para rodar várias avaliações automaticamente, crie um script PowerShell (.ps1) ou batch (.bat) que invoque RunModel.py com diferentes parâmetros.
+
+8) Troubleshooting — problemas comuns
+
+- ClassNotFound / NoClassDefFoundError: verifique classpath/compilação do Java ou rode pela IDE.
+- Erros de import no Python: ative o venv e instale dependências.
+- Caminhos com espaços: use aspas ou escape (ex.: "training profiles").
+
+9) Próximos passos e personalizações
+
+- Posso gerar docstrings/Javadocs nos arquivos Java e docstrings nos scripts Python para documentação inline.
+- Posso criar scripts de execução prontos (.bat/.sh) na raiz para facilitar rodar host/cliente/treino.
+- Posso documentar cada arquivo .properties individualmente.
+
+— Fim do tutorial
+
